@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import headerImage from 'figma:asset/d2fc918383f600f56ee5a43c3dc5c6e2fa70fbf3.png';
 import html2canvas from 'html2canvas';
 
 const Invoice = ({ data }: { data: any }) => {
@@ -241,17 +240,55 @@ const Invoice = ({ data }: { data: any }) => {
             paddingBottom: '0'
           }}
         >
-        {/* Header - SCHMELZDEPOT Banner - Echtes Design aus Figma */}
-        <img 
-          src={headerImage} 
-          alt="SCHMELZDEPOT RECHNUNG" 
-          style={{ 
-            width: '100%', 
-            height: 'auto',
-            display: 'block',
-            flexShrink: 0
-          }}
-        />
+        {/* Header - SCHMELZDEPOT Banner - Recreated in CSS for Build Stability */}
+        <div style={{
+          backgroundColor: '#ff8000',
+          color: '#ffffff',
+          padding: '40px 48px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          height: '180px',
+          boxSizing: 'border-box',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h1 style={{
+              fontSize: '48px',
+              fontWeight: '900',
+              margin: 0,
+              lineHeight: '1',
+              letterSpacing: '1px',
+              fontFamily: 'Arial, sans-serif'
+            }}>SCHMELZDEPOT</h1>
+            <span style={{
+              fontSize: '28px',
+              fontWeight: 'bold',
+              marginTop: '8px',
+              letterSpacing: '1px',
+              fontFamily: 'Arial, sans-serif'
+            }}>RECHNUNG</span>
+          </div>
+          
+          <svg 
+            width="120" 
+            height="80" 
+            viewBox="0 0 100 60" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="3" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            style={{ opacity: 0.9 }}
+          >
+             <path d="M40 10 L80 10 L80 40 L40 40 Z" />
+             <path d="M80 40 L80 25 L88 25 L95 32 L95 40 Z" />
+             <circle cx="55" cy="48" r="7" strokeWidth="3" />
+             <circle cx="85" cy="48" r="7" strokeWidth="3" />
+             <path d="M10 40 Q 25 20 40 30" strokeWidth="3" />
+             <path d="M5 40 L 40 40" strokeWidth="3" />
+          </svg>
+        </div>
 
         {/* Customer Information Section */}
         <div style={{ 
