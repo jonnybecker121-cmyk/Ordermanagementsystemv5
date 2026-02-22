@@ -1,11 +1,34 @@
+# Figma Make React App
 
-  # Order Management System
+This project is a React application built with Vite and Tailwind CSS.
 
-  This is a code bundle for Order Management System. The original project is available at https://www.figma.com/design/1ZnHcP0BOZcQ0FAWmvvyse/Order-Management-System.
+## Deployment to Cloudflare Pages
 
-  ## Running the code
+This project is configured for easy deployment to Cloudflare Pages.
 
-  Run `npm i` to install the dependencies.
+### Prerequisites
 
-  Run `npm run dev` to start the development server.
-  
+- A GitHub account
+- A Cloudflare account
+
+### Steps
+
+1.  **Push to GitHub:**
+    Push this repository to your GitHub account.
+
+2.  **Connect to Cloudflare Pages:**
+    - Log in to the Cloudflare dashboard.
+    - Go to "Pages" and click "Create a project" > "Connect to Git".
+    - Select your repository.
+
+3.  **Configure Build Settings:**
+    - **Framework preset:** `Vite`
+    - **Build command:** `npm run build`
+    - **Build output directory:** `dist`
+
+4.  **Deploy:**
+    Click "Save and Deploy".
+
+### Single Page Application (SPA) Routing
+
+A `public/_redirects` file has been added to support client-side routing. This ensures that all paths are redirected to `index.html`, allowing the React Router to handle navigation correctly.
