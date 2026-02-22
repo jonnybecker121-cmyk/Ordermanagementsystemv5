@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import headerImage from 'figma:asset/e17036e96c493e942eb229759f7176629b452331.png';
+import headerImage from 'figma:asset/d2fc918383f600f56ee5a43c3dc5c6e2fa70fbf3.png';
 import html2canvas from 'html2canvas';
 
 const Invoice = ({ data }: { data: any }) => {
@@ -97,6 +97,10 @@ const Invoice = ({ data }: { data: any }) => {
         logging: false,
         removeContainer: true,
         imageTimeout: 15000,
+        ignoreElements: (element) => {
+          const tagName = element.tagName.toLowerCase();
+          return tagName === 'style' || (tagName === 'link' && element.getAttribute('rel') === 'stylesheet');
+        },
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.querySelector('[data-invoice-export]') as HTMLElement;
           if (clonedElement) {
@@ -431,19 +435,20 @@ const Invoice = ({ data }: { data: any }) => {
           style={{ 
             backgroundColor: '#ff8000',
             color: '#ffffff',
-            padding: '32px',
+            padding: '40px 32px 40px 32px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '16px',
             flexShrink: 0,
             marginTop: 'auto'
           }}
         >
           <p style={{ 
-            fontSize: '16px', 
+            fontSize: '14px', 
             fontWeight: 'bold',
             letterSpacing: '0.5px',
-            margin: 0
+            margin: '0',
+            textTransform: 'uppercase'
           }}>
             LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
           </p>
@@ -454,29 +459,28 @@ const Invoice = ({ data }: { data: any }) => {
             alignItems: 'center',
             gap: '20px'
           }}>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>
+            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
               Verwendungszweck: {reference || orderNumber}
             </span>
             <span style={{ 
               fontFamily: 'monospace', 
               fontSize: '22px', 
               fontWeight: 'bold',
-              letterSpacing: '2px'
+              letterSpacing: '1px'
             }}>
               VBAN-409856
             </span>
           </div>
           
-          {paymentNote && (
-            <p style={{ 
-              fontSize: '14px', 
-              lineHeight: '1.5',
-              opacity: 0.95,
-              margin: 0
-            }}>
-              {paymentNote}
-            </p>
-          )}
+          <p style={{ 
+            fontSize: '13px', 
+            lineHeight: '1.5',
+            opacity: 0.95,
+            margin: '0',
+            maxWidth: '100%'
+          }}>
+            Nach Eingang dieses Schreibens haben Sie 3 Tage Zeit die Rechnung zu begleichen. Bei nicht fristgerechter Zahlung behalten wir uns rechtliche Schritte sowie Verzugsgebühren von 200$ pro Tag vor.
+          </p>
         </div>
         </div>
         </div>
