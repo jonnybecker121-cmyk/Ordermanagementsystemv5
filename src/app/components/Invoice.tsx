@@ -69,7 +69,7 @@ const Invoice = ({ data }: { data: any }) => {
     }
 
     try {
-      console.log('🚀 Starting PNG export (949×1177px @ 96 DPI, 32-bit)...');
+      console.log('🚀 Starting PNG export...');
       
       // Get the wrapper and invoice element
       const wrapper = invoiceRef.current.parentElement;
@@ -80,21 +80,14 @@ const Invoice = ({ data }: { data: any }) => {
         wrapper.style.transform = 'none';
       }
       
-      // Fixed width, dynamic height to prevent footer cutoff
       const EXPORT_WIDTH = 949;
-      const actualHeight = invoiceRef.current.scrollHeight;
-      const EXPORT_HEIGHT = actualHeight; // Exakte Höhe ohne Padding
       
-      console.log(`📏 Export dimensions: ${EXPORT_WIDTH}×${EXPORT_HEIGHT}px @ 96 DPI (content height: ${actualHeight}px)`);
-      
-      // Create canvas with exact dimensions (scale 1 for 96 DPI, 1:1 pixel mapping)
+      // Create canvas – kein festes height, html2canvas erkennt die Höhe selbst
       const canvas = await html2canvas(invoiceRef.current, {
         backgroundColor: '#ffffff',
-        scale: 1, // 1:1 pixel mapping for exact 96 DPI
+        scale: 1,
         width: EXPORT_WIDTH,
-        height: EXPORT_HEIGHT,
         windowWidth: EXPORT_WIDTH,
-        windowHeight: EXPORT_HEIGHT,
         useCORS: true,
         allowTaint: false,
         logging: false,
@@ -109,35 +102,40 @@ const Invoice = ({ data }: { data: any }) => {
           if (clonedElement) {
             clonedElement.style.fontFamily = 'Arial, sans-serif';
             clonedElement.style.width = `${EXPORT_WIDTH}px`;
-            clonedElement.style.minHeight = 'auto';
             clonedElement.style.height = 'auto';
-            
-            // WICHTIG: Border und Shadow für Export entfernen - nur weißer Hintergrund
+            clonedElement.style.minHeight = 'auto';
             clonedElement.style.border = 'none';
             clonedElement.style.boxShadow = 'none';
             clonedElement.style.backgroundColor = '#ffffff';
-            
-            // KEIN Padding-Bottom - Footer soll direkt am Ende sein
             clonedElement.style.paddingBottom = '0';
             
-            // Remove any zoom or transform
+            // marginTop: auto am Footer entfernen → Footer fließt natürlich ans Ende
+            const children = clonedElement.children;
+            const footerEl = children[children.length - 1] as HTMLElement;
+            if (footerEl) {
+              footerEl.style.marginTop = '0';
+            }
+            
+            // Wrapper-Transform zurücksetzen
             const clonedWrapper = clonedElement.parentElement;
             if (clonedWrapper) {
               clonedWrapper.style.zoom = '1';
               clonedWrapper.style.transform = 'none';
               clonedWrapper.style.width = `${EXPORT_WIDTH}px`;
-              clonedWrapper.style.height = `${EXPORT_HEIGHT}px`;
+              clonedWrapper.style.height = 'auto';
               clonedWrapper.style.backgroundColor = '#ffffff';
             }
             
-            // Force simple colors for consistent rendering
+            // Farben sicherstellen
             const allElements = clonedElement.querySelectorAll('*');
             allElements.forEach(el => {
               if (el instanceof HTMLElement) {
-                if (el.style.backgroundColor === 'rgb(255, 128, 0)' || el.style.backgroundColor === '#ff8000') {
+                const bg = el.style.backgroundColor;
+                const col = el.style.color;
+                if (bg === 'rgb(255, 128, 0)' || bg === '#ff8000') {
                   el.style.backgroundColor = '#ff8000';
                 }
-                if (el.style.color === 'rgb(255, 255, 255)' || el.style.color === '#ffffff') {
+                if (col === 'rgb(255, 255, 255)' || col === '#ffffff') {
                   el.style.color = '#ffffff';
                 }
               }
@@ -146,17 +144,12 @@ const Invoice = ({ data }: { data: any }) => {
         }
       });
       
-      // Restore original transform
+      // Transform wiederherstellen
       if (wrapper && originalTransform) {
         wrapper.style.transform = originalTransform;
       }
       
-      console.log(`📊 Canvas generated: ${canvas.width}×${canvas.height}px`);
-      
-      // Verify exact dimensions
-      if (canvas.width !== EXPORT_WIDTH || canvas.height !== EXPORT_HEIGHT) {
-        console.warn(`⚠️ Canvas size mismatch! Expected ${EXPORT_WIDTH}×${EXPORT_HEIGHT}, got ${canvas.width}×${canvas.height}`);
-      }
+      console.log(`📊 Canvas: ${canvas.width}×${canvas.height}px`);
       
       const link = document.createElement('a');
       link.download = `SCHMELZDEPOT_Rechnung_${orderNumber || 'INVOICE'}.png`;
@@ -438,7 +431,7 @@ const Invoice = ({ data }: { data: any }) => {
           style={{ 
             backgroundColor: '#ff8000',
             color: '#ffffff',
-            padding: '40px 32px 40px 32px',
+            padding: '24px 32px 24px 32px',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
