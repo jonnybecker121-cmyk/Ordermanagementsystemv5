@@ -445,7 +445,7 @@ export default function InventoryManager({ syncTrigger = 0 }: InventoryManagerPr
               </div>
               <div>
                 <CardTitle className="flex items-center gap-2 flex-wrap">
-                  <span className="text-black dark:text-white">Lager & Bewegungs-Log</span>
+                  <span className="text-foreground">Lager & Bewegungs-Log</span>
                   <Badge 
                     variant="outline" 
                     className="border-green-500/50 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] gap-1"

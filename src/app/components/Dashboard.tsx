@@ -268,7 +268,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
         {/* Quick Actions */}
         <Card className="bg-card border border-primary/20">
           <CardHeader>
-            <CardTitle className="text-black dark:text-white">Schnellaktionen</CardTitle>
+            <CardTitle className="text-foreground">Schnellaktionen</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {quickActions.map((action, index) => (
@@ -279,7 +279,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                     <action.icon className="h-4 w-4 text-primary-foreground" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-black dark:text-white">{action.title}</h4>
+                    <h4 className="font-medium text-foreground">{action.title}</h4>
                     <p className="text-sm text-muted-foreground">{action.description}</p>
                   </div>
                 </div>
@@ -535,7 +535,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
+                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
                       <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
                         <TrendingUp className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -550,7 +550,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
+                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
                       <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
                         <TrendingDown className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -565,7 +565,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
+                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
                       <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
                         <History className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -599,7 +599,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="sell" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <TrendingUp className="h-4 w-4 text-primary-foreground" />
                         </div>

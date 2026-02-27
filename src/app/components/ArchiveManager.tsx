@@ -154,7 +154,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
             <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
               <Archive className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-black dark:text-white">Archiv</span>
+            <span className="text-foreground">Archiv</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -261,7 +261,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
             <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-black dark:text-white">Archivierte Aufträge ({filteredOrders.length})</span>
+            <span className="text-foreground">Archivierte Aufträge ({filteredOrders.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

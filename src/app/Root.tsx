@@ -245,7 +245,16 @@ export default function Root() {
           <MobileSyncDot />
         </header>
 
-        <div className="flex-1 overflow-auto p-4 md:p-6 bg-background/50">
+        <div
+          className="flex-1 overflow-auto p-4 md:p-6 bg-background/50"
+          style={{
+            fontFamily: "'Inter', system-ui, sans-serif",
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'optimizeLegibility',
+            fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11"',
+          }}
+        >
           <div className="max-w-7xl mx-auto">
             <Outlet context={{ onNavigate: handleNavigate, syncTrigger }} />
           </div>

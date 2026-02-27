@@ -208,7 +208,7 @@ export default function InvoiceManager() {
             <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-black dark:text-white">Rechnungen</span>
+            <span className="text-foreground">Rechnungen</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">

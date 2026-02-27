@@ -126,7 +126,7 @@ export function OrderList() {
           <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
             <ShoppingCart className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-black dark:text-white">Aufträge</span>
+          <span className="text-foreground">Aufträge</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pt-4">
