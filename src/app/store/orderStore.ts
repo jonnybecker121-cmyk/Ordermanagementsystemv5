@@ -185,17 +185,21 @@ export const useOrderStore = create<OrderState>()(
           _savedAt: timestamp,
         };
 
+        // Optimistisch setzen – verhindert, dass ein laufender Poll-Zyklus
+        // ältere Server-Daten über die gerade geänderten lokalen Daten schreibt
+        set({ _lastSavedAt: timestamp });
+
         try {
           const res = await fetch(`${BASE_URL}/store/full_data`, {
             method: 'POST',
             headers: AUTH_HEADERS,
             body: JSON.stringify(dataToSave),
           });
-          if (res.ok) {
-            set({ _lastSavedAt: timestamp });
+          if (!res.ok) {
+            console.error(`OrderStore: Backend-Save fehlgeschlagen (HTTP ${res.status}) – Daten bleiben im LocalStorage gesichert`);
           }
         } catch (error) {
-          console.error('OrderStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
+          console.error('OrderStore: Backend-Save Netzwerkfehler – Daten bleiben im LocalStorage gesichert:', error);
         }
       },
 
