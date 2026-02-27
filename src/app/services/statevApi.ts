@@ -124,7 +124,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<Factory[]>('/factory/list/');
     } catch (error) {
-      console.warn('Using mock factory list:', error);
+      console.debug('Using mock factory list:', error);
       return [{
         id: FACTORY_ID,
         name: 'SCHMELZDEPOT',
@@ -140,7 +140,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<Inventory>(`/factory/inventory/${factoryId}`);
     } catch (error) {
-      console.warn('Using mock inventory:', error);
+      console.debug('Using mock inventory:', error);
       return {
         totalWeight: 1250,
         items: [
@@ -156,7 +156,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<Inventory>(`/factory/machine/${factoryId}`);
     } catch (error) {
-      console.warn('Using mock machines:', error);
+      console.debug('Using mock machines:', error);
       return { totalWeight: 0, items: [] };
     }
   }
@@ -165,7 +165,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<BankAccount[]>(`/factory/bankaccounts/${factoryId}`);
     } catch (error) {
-      console.warn('Using mock bank accounts:', error);
+      console.debug('Using mock bank accounts:', error);
       return [
         { id: '1', vban: 'DE89 3704 0044 0532 0130 00', balance: 125000.50, note: 'Geschäftskonto Haupt' },
         { id: '2', vban: 'DE89 3704 0044 0532 0130 01', balance: 5430.00, note: 'Kasse' }
@@ -177,7 +177,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<TransactionResponse>(`/factory/transactions/${bankId}/${limit}/${offset}`);
     } catch (error) {
-      console.warn('Using mock transactions:', error);
+      console.debug('Using mock transactions:', error);
       return {
         totalTransactions: 3,
         transactions: [
@@ -215,7 +215,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<SellOffer[]>(`/factory/marketoffers/sell/${factoryId}`);
     } catch (error) {
-      console.warn('Using mock sell offers:', error);
+      console.debug('Using mock sell offers:', error);
       // Return mock data with correct Dashboard format
       return [
         {
@@ -250,7 +250,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<BuyOffer[]>(`/factory/marketoffers/buy/${factoryId}`);
     } catch (error) {
-      console.warn('Using mock buy offers:', error);
+      console.debug('Using mock buy offers:', error);
       // Return mock data with correct Dashboard format
       return [
         {
@@ -275,7 +275,7 @@ class StatevApiService {
     try {
       return await this.makeRequest<PurchaseLog[]>(`/factory/buyLog/${factoryId}/${limit}/${skip}`);
     } catch (error) {
-      console.warn('Using mock purchase log:', error);
+      console.debug('Using mock purchase log:', error);
       // Return mock data - PurchaseLog has items array
       return [
         {

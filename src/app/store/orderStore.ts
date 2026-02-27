@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { syncService } from '../services/syncService';
 
 export interface OrderItem {
   name: string;
@@ -172,6 +173,13 @@ export const useOrderStore = create<OrderState>()(
         const state = get();
         if (state.isLoading) return;
 
+        // Wenn offline → Save aufschoben, wird beim Reconnect nachgeholt
+        if (syncService.offline) {
+          syncService.registerPendingSave(() => useOrderStore.getState().saveToBackend());
+          console.debug('OrderStore: Offline – Backend-Save aufgeschoben');
+          return;
+        }
+
         const timestamp = Date.now();
         const dataToSave = {
           ordersOpen: state.ordersOpen,
@@ -196,10 +204,12 @@ export const useOrderStore = create<OrderState>()(
             body: JSON.stringify(dataToSave),
           });
           if (!res.ok) {
-            console.error(`OrderStore: Backend-Save fehlgeschlagen (HTTP ${res.status}) – Daten bleiben im LocalStorage gesichert`);
+            console.debug(`OrderStore: Backend-Save fehlgeschlagen (HTTP ${res.status}) – Daten bleiben im LocalStorage gesichert`);
           }
         } catch (error) {
-          console.error('OrderStore: Backend-Save Netzwerkfehler – Daten bleiben im LocalStorage gesichert:', error);
+          console.debug('OrderStore: Backend-Save Netzwerkfehler – Daten bleiben im LocalStorage gesichert:', error);
+          // Bei Netzwerkfehler pending save registrieren
+          syncService.registerPendingSave(() => useOrderStore.getState().saveToBackend());
         }
       },
 

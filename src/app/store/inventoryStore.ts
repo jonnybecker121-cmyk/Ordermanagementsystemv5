@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { syncService } from '../services/syncService';
 
 export interface InventoryLogEntry {
   id: string;
@@ -94,6 +95,13 @@ export const useInventoryStore = create<InventoryState>()(
       saveToBackend: async () => {
         const state = get();
         const timestamp = Date.now();
+
+        if (syncService.offline) {
+          syncService.registerPendingSave(() => useInventoryStore.getState().saveToBackend());
+          console.debug('InventoryStore: Offline – Backend-Save aufgeschoben');
+          return;
+        }
+
         try {
           const res = await fetch(`${BASE_URL}/store/inventory_data`, {
             method: 'POST',
@@ -108,7 +116,8 @@ export const useInventoryStore = create<InventoryState>()(
             set({ _lastSavedAt: timestamp });
           }
         } catch (error) {
-          console.error('InventoryStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
+          console.warn('InventoryStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
+          syncService.registerPendingSave(() => useInventoryStore.getState().saveToBackend());
         }
       },
 

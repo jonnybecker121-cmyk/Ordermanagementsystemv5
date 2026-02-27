@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { syncService } from '../services/syncService';
 
 export interface PaymentNote {
   id: string;
@@ -75,6 +76,13 @@ export const useInvoiceStore = create<InvoiceState>()(
       saveToBackend: async () => {
         const state = get();
         const timestamp = Date.now();
+
+        if (syncService.offline) {
+          syncService.registerPendingSave(() => useInvoiceStore.getState().saveToBackend());
+          console.debug('InvoiceStore: Offline – Backend-Save aufgeschoben');
+          return;
+        }
+
         try {
           const res = await fetch(`${BASE_URL}/store/invoice_data`, {
             method: 'POST',
@@ -88,7 +96,8 @@ export const useInvoiceStore = create<InvoiceState>()(
             set({ _lastSavedAt: timestamp });
           }
         } catch (error) {
-          console.error('InvoiceStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
+          console.warn('InvoiceStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
+          syncService.registerPendingSave(() => useInvoiceStore.getState().saveToBackend());
         }
       },
 

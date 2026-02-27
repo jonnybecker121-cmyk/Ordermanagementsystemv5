@@ -5,20 +5,41 @@ import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
 
-// Logger
-app.use('*', logger(console.log));
+// ─── Retry Helper ─────────────────────────────────────────────────────────────
+// Retries a KV operation up to `maxAttempts` times on transient network errors
+// (e.g. connection reset, ECONNRESET, code 104).
 
-// CORS
-app.use(
-  "/*",
-  cors({
-    origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-  }),
-);
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxAttempts = 3,
+  baseDelayMs = 200,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err);
+      const isTransient =
+        msg.includes("connection reset") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("connection error") ||
+        msg.includes("SendRequest") ||
+        msg.includes("error sending request");
+
+      if (!isTransient || attempt === maxAttempts) {
+        console.error(`[KV] ${label} failed after ${attempt} attempt(s):`, err);
+        throw err;
+      }
+      const delay = baseDelayMs * Math.pow(2, attempt - 1);
+      console.warn(`[KV] ${label} – transient error (attempt ${attempt}/${maxAttempts}), retrying in ${delay}ms…`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
 
 // ─── Health Check ────────────────────────────────────────────────────────────
 
@@ -41,7 +62,7 @@ app.get("/make-server-b50ee5dd/store/:key/meta", async (c) => {
   const metaKey = `shared:store:${key}:meta`;
 
   try {
-    const meta = await kv.get(metaKey);
+    const meta = await withRetry(() => kv.get(metaKey), `get-meta:${key}`);
     return c.json({ meta: meta || { _savedAt: 0 } });
   } catch (err) {
     console.error(`KV Meta-Get error for key ${key}:`, err);
@@ -55,7 +76,7 @@ app.get("/make-server-b50ee5dd/store/:key", async (c) => {
   const storeKey = `shared:store:${key}`;
 
   try {
-    const value = await kv.get(storeKey);
+    const value = await withRetry(() => kv.get(storeKey), `get:${key}`);
     return c.json({ data: value });
   } catch (err) {
     console.error(`KV Get error for key ${key}:`, err);
@@ -72,24 +93,20 @@ app.post("/make-server-b50ee5dd/store/:key", async (c) => {
   try {
     const body = await c.req.json();
 
-    // Stelle sicher dass ein _savedAt Timestamp vorhanden ist
     if (!body._savedAt) {
       body._savedAt = Date.now();
     }
 
-    // Speichere vollständige Daten
-    await kv.set(storeKey, body);
+    await withRetry(() => kv.set(storeKey, body), `set:${key}`);
+    await withRetry(
+      () => kv.set(metaKey, {
+        _savedAt: body._savedAt,
+        _savedAt_iso: new Date(body._savedAt).toISOString(),
+      }),
+      `set-meta:${key}`,
+    );
 
-    // Speichere Meta-Informationen separat (für schnelle Timestamp-Checks)
-    await kv.set(metaKey, {
-      _savedAt: body._savedAt,
-      _savedAt_iso: new Date(body._savedAt).toISOString(),
-    });
-
-    return c.json({
-      success: true,
-      _savedAt: body._savedAt,
-    });
+    return c.json({ success: true, _savedAt: body._savedAt });
   } catch (err) {
     console.error(`KV Set error for key ${key}:`, err);
     return c.json({ error: "Failed to save data" }, 500);
@@ -103,8 +120,8 @@ app.delete("/make-server-b50ee5dd/store/:key", async (c) => {
   const metaKey = `shared:store:${key}:meta`;
 
   try {
-    await kv.del(storeKey);
-    await kv.del(metaKey);
+    await withRetry(() => kv.del(storeKey), `del:${key}`);
+    await withRetry(() => kv.del(metaKey), `del-meta:${key}`);
     return c.json({ success: true });
   } catch (err) {
     console.error(`KV Delete error for key ${key}:`, err);
@@ -113,14 +130,13 @@ app.delete("/make-server-b50ee5dd/store/:key", async (c) => {
 });
 
 // ─── Sync Status Endpoint ─────────────────────────────────────────────────────
-// Gibt Timestamps aller Stores zurück – nützlich für schnellen Multi-Store-Check
 
 app.get("/make-server-b50ee5dd/sync/status", async (c) => {
   try {
     const [orderMeta, inventoryMeta, invoiceMeta] = await Promise.all([
-      kv.get("shared:store:full_data:meta"),
-      kv.get("shared:store:inventory_data:meta"),
-      kv.get("shared:store:invoice_data:meta"),
+      withRetry(() => kv.get("shared:store:full_data:meta"), "sync:full_data"),
+      withRetry(() => kv.get("shared:store:inventory_data:meta"), "sync:inventory_data"),
+      withRetry(() => kv.get("shared:store:invoice_data:meta"), "sync:invoice_data"),
     ]);
 
     return c.json({
