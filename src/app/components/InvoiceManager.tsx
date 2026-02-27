@@ -30,6 +30,35 @@ export default function InvoiceManager() {
     taxMode: 'plus'
   });
 
+  // Load from local storage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('schmelzdepot_invoice_form_data');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        // Restore only if it has some content
+        if (parsed && (parsed.customerName || parsed.items?.length > 0 || parsed.orderNumber)) {
+          setFormData(prev => ({ ...prev, ...parsed }));
+          import('sonner').then(({ toast }) => {
+            toast.info('Entwurf wiederhergestellt', {
+              description: 'Der letzte Stand deiner Rechnung wurde geladen.',
+            });
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.error('Failed to parse saved invoice data', e);
+      }
+    }
+  }, []);
+
+  // Save to local storage on change
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      localStorage.setItem('schmelzdepot_invoice_form_data', JSON.stringify(formData));
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [formData]);
+
   const [showPaymentNoteManager, setShowPaymentNoteManager] = useState(false);
   const [newPaymentNote, setNewPaymentNote] = useState({ title: '', content: '' });
   const [editingPaymentNote, setEditingPaymentNote] = useState<PaymentNote | null>(null);
@@ -110,6 +139,7 @@ export default function InvoiceManager() {
   };
 
   const resetForm = () => {
+    localStorage.removeItem('schmelzdepot_invoice_form_data');
     const defaultNote = getDefaultPaymentNote();
     setFormData({
       customerName: '',

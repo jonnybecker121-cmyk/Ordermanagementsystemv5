@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { projectId } from '../../../utils/supabase/info';
 
 export interface OrderItem {
@@ -107,271 +108,288 @@ const defaultItems: Item[] = [
   { id: 'item-9', name: 'Goldbarren', price: 65.00 }
 ];
 
-export const useOrderStore = create<OrderState>((set, get) => ({
-  ordersOpen: [],
-  ordersDone: [],
-  ordersArchive: [],
-  customers: defaultCustomers,
-  items: defaultItems,
-  
-  orderPrefix: 'SD',
-  orderDigits: 4,
-  nextCounter: 1145,
-  isLoading: false,
-  
-  loadFromBackend: async () => {
-    set({ isLoading: true });
-    try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/store/full_data`);
+export const useOrderStore = create<OrderState>()(
+  persist(
+    (set, get) => ({
+      ordersOpen: [],
+      ordersDone: [],
+      ordersArchive: [],
+      customers: defaultCustomers,
+      items: defaultItems,
       
-      if (response.ok) {
-        const { data } = await response.json();
-        if (data) {
-          set({
-             ordersOpen: data.ordersOpen || [],
-             ordersDone: data.ordersDone || [],
-             ordersArchive: data.ordersArchive || [],
-             customers: data.customers && data.customers.length > 0 ? data.customers : defaultCustomers,
-             items: data.items && data.items.length > 0 ? data.items : defaultItems,
-             orderPrefix: data.orderPrefix || 'SD',
-             orderDigits: data.orderDigits || 4,
-             nextCounter: data.nextCounter || 1145,
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load data', error);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-  
-  saveToBackend: async () => {
-    const state = get();
-    // Don't save while loading
-    if (state.isLoading) return;
-
-    const dataToSave = {
-      ordersOpen: state.ordersOpen,
-      ordersDone: state.ordersDone,
-      ordersArchive: state.ordersArchive,
-      customers: state.customers,
-      items: state.items,
-      orderPrefix: state.orderPrefix,
-      orderDigits: state.orderDigits,
-      nextCounter: state.nextCounter,
-    };
-
-    try {
-      await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/store/full_data`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dataToSave)
-      });
-    } catch (error) {
-      console.error('Failed to save data', error);
-    }
-  },
-  
-  createOrder: (data) => {
-    set((state) => {
-      const orderNumber = `${state.orderPrefix}${String(state.nextCounter).padStart(state.orderDigits, '0')}`;
-      const newOrder: Order = {
-        id: `ord-${Date.now()}`,
-        number: orderNumber,
-        ref: '',
-        customerName: '',
-        customerEmail: '',
-        customerPhone: '',
-        items: [],
-        status: 'Ausstehend',
-        createdAt: new Date().toISOString(),
-        taxRate: 0,
-        taxSign: 'plus',
-        ...data,
-      };
-      return {
-        ordersOpen: [newOrder, ...state.ordersOpen],
-        nextCounter: state.nextCounter + 1
-      };
-    });
-    get().saveToBackend();
-  },
-  
-  updateOrder: (id, data) => {
-    set((state) => {
-      const updateInList = (list: Order[]) => list.map(o => {
-        if (o.id !== id) return o;
-        const updated = { ...o, ...data };
-        
-        if (data.status === 'Abgeschlossen' && o.status !== 'Abgeschlossen') {
-           updated.completedAt = new Date().toISOString();
-        }
-        if (data.status === 'Gezahlt' && o.status !== 'Gezahlt') {
-           updated.paidAt = new Date().toISOString();
-        }
-        return updated;
-      });
-
-      let newOrdersOpen = updateInList(state.ordersOpen);
-      let newOrdersDone = updateInList(state.ordersDone);
-      let newOrdersArchive = updateInList(state.ordersArchive);
+      orderPrefix: 'SD',
+      orderDigits: 4,
+      nextCounter: 1145,
+      isLoading: false,
       
-      const orderInOpen = state.ordersOpen.find(o => o.id === id);
-      if (orderInOpen && (data.status === 'Gezahlt' || data.status === 'Abgeschlossen')) {
-        const updatedOrder = { ...orderInOpen, ...data };
-        if (data.status === 'Gezahlt' && !updatedOrder.paidAt) updatedOrder.paidAt = new Date().toISOString();
-        if (data.status === 'Abgeschlossen' && !updatedOrder.completedAt) updatedOrder.completedAt = new Date().toISOString();
-        
-        return {
-          ordersOpen: state.ordersOpen.filter(o => o.id !== id),
-          ordersDone: [updatedOrder, ...state.ordersDone]
+      loadFromBackend: async () => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/store/full_data`);
+          
+          if (response.ok) {
+            const { data } = await response.json();
+            if (data) {
+              set({
+                 ordersOpen: data.ordersOpen || [],
+                 ordersDone: data.ordersDone || [],
+                 ordersArchive: data.ordersArchive || [],
+                 customers: data.customers && data.customers.length > 0 ? data.customers : defaultCustomers,
+                 items: data.items && data.items.length > 0 ? data.items : defaultItems,
+                 orderPrefix: data.orderPrefix || 'SD',
+                 orderDigits: data.orderDigits || 4,
+                 nextCounter: data.nextCounter || 1145,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load data from backend, using cached LocalStorage data', error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      saveToBackend: async () => {
+        const state = get();
+        // Don't save while loading
+        if (state.isLoading) return;
+
+        const dataToSave = {
+          ordersOpen: state.ordersOpen,
+          ordersDone: state.ordersDone,
+          ordersArchive: state.ordersArchive,
+          customers: state.customers,
+          items: state.items,
+          orderPrefix: state.orderPrefix,
+          orderDigits: state.orderDigits,
+          nextCounter: state.nextCounter,
         };
+
+        try {
+          await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/store/full_data`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dataToSave)
+          });
+        } catch (error) {
+          console.error('Failed to save data to backend, data is preserved in LocalStorage', error);
+        }
+      },
+      
+      createOrder: (data) => {
+        set((state) => {
+          const orderNumber = `${state.orderPrefix}${String(state.nextCounter).padStart(state.orderDigits, '0')}`;
+          const newOrder: Order = {
+            id: `ord-${Date.now()}`,
+            number: orderNumber,
+            ref: '',
+            customerName: '',
+            customerEmail: '',
+            customerPhone: '',
+            items: [],
+            status: 'Ausstehend',
+            createdAt: new Date().toISOString(),
+            taxRate: 0,
+            taxSign: 'plus',
+            ...data,
+          };
+          return {
+            ordersOpen: [newOrder, ...state.ordersOpen],
+            nextCounter: state.nextCounter + 1
+          };
+        });
+        get().saveToBackend();
+      },
+      
+      updateOrder: (id, data) => {
+        set((state) => {
+          const updateInList = (list: Order[]) => list.map(o => {
+            if (o.id !== id) return o;
+            const updated = { ...o, ...data };
+            
+            if (data.status === 'Abgeschlossen' && o.status !== 'Abgeschlossen') {
+               updated.completedAt = new Date().toISOString();
+            }
+            if (data.status === 'Gezahlt' && o.status !== 'Gezahlt') {
+               updated.paidAt = new Date().toISOString();
+            }
+            return updated;
+          });
+
+          let newOrdersOpen = updateInList(state.ordersOpen);
+          let newOrdersDone = updateInList(state.ordersDone);
+          let newOrdersArchive = updateInList(state.ordersArchive);
+          
+          const orderInOpen = state.ordersOpen.find(o => o.id === id);
+          if (orderInOpen && (data.status === 'Gezahlt' || data.status === 'Abgeschlossen')) {
+            const updatedOrder = { ...orderInOpen, ...data };
+            if (data.status === 'Gezahlt' && !updatedOrder.paidAt) updatedOrder.paidAt = new Date().toISOString();
+            if (data.status === 'Abgeschlossen' && !updatedOrder.completedAt) updatedOrder.completedAt = new Date().toISOString();
+            
+            return {
+              ordersOpen: state.ordersOpen.filter(o => o.id !== id),
+              ordersDone: [updatedOrder, ...state.ordersDone]
+            };
+          }
+          
+          const orderInDone = state.ordersDone.find(o => o.id === id);
+          if (orderInDone && (data.status === 'Ausstehend' || data.status === 'In Bearbeitung' || data.status === 'Warten auf Zahlung')) {
+             const updatedOrder = { ...orderInDone, ...data };
+             return {
+               ordersDone: state.ordersDone.filter(o => o.id !== id),
+               ordersOpen: [updatedOrder, ...state.ordersOpen]
+             };
+          }
+
+          return {
+            ordersOpen: newOrdersOpen,
+            ordersDone: newOrdersDone,
+            ordersArchive: newOrdersArchive
+          };
+        });
+        get().saveToBackend();
+      },
+      
+      deleteOrder: (id) => {
+        set((state) => ({
+          ordersOpen: state.ordersOpen.filter(o => o.id !== id),
+          ordersDone: state.ordersDone.filter(o => o.id !== id),
+          ordersArchive: state.ordersArchive.filter(o => o.id !== id)
+        }));
+        get().saveToBackend();
+      },
+      
+      moveOrderToCompleted: (id) => get().updateOrder(id, { status: 'Abgeschlossen' }),
+      
+      reopenOrder: (id) => get().updateOrder(id, { status: 'In Bearbeitung' }),
+      
+      archiveOrder: (id) => {
+        set((state) => {
+          const order = state.ordersDone.find(o => o.id === id);
+          if (!order) return {};
+          return {
+            ordersDone: state.ordersDone.filter(o => o.id !== id),
+            ordersArchive: [{ ...order, archived: true }, ...state.ordersArchive]
+          };
+        });
+        get().saveToBackend();
+      },
+
+      moveToArchive: (id) => get().archiveOrder(id),
+      
+      unarchiveOrder: (id) => {
+        set((state) => {
+          const order = state.ordersArchive.find(o => o.id === id);
+          if (!order) return {};
+          return {
+            ordersArchive: state.ordersArchive.filter(o => o.id !== id),
+            ordersDone: [{ ...order, archived: false }, ...state.ordersDone]
+          };
+        });
+        get().saveToBackend();
+      },
+      
+      restoreFromArchive: (id) => get().unarchiveOrder(id),
+      
+      deleteFromArchive: (id) => {
+        set((state) => ({
+          ordersArchive: state.ordersArchive.filter(o => o.id !== id)
+        }));
+        get().saveToBackend();
+      },
+      
+      autoArchiveCompleted: () => {
+        set((state) => {
+          const now = Date.now();
+          const oneHour = 60 * 60 * 1000;
+
+          const toArchive = state.ordersDone.filter(o => {
+            if (o.status !== 'Abgeschlossen') return false;
+            const timeRef = o.completedAt ? new Date(o.completedAt).getTime() : 0;
+            return timeRef > 0 && (now - timeRef) > oneHour;
+          });
+
+          if (toArchive.length === 0) return {};
+
+          const toArchiveIds = new Set(toArchive.map(o => o.id));
+          
+          const remaining = state.ordersDone.filter(o => !toArchiveIds.has(o.id));
+          const archived = toArchive.map(o => ({ ...o, archived: true }));
+          
+          return {
+            ordersDone: remaining,
+            ordersArchive: [...archived, ...state.ordersArchive]
+          };
+        });
+        get().saveToBackend();
+      },
+      
+      addCustomer: (customer) => {
+        set((state) => ({
+          customers: [...state.customers, { ...customer, id: `cust-${Date.now()}` }]
+        }));
+        get().saveToBackend();
+      },
+      
+      updateCustomer: (id, data) => {
+        set((state) => ({
+          customers: state.customers.map(c => c.id === id ? { ...c, ...data } : c)
+        }));
+        get().saveToBackend();
+      },
+      
+      deleteCustomer: (id) => {
+        set((state) => ({
+          customers: state.customers.filter(c => c.id !== id)
+        }));
+        get().saveToBackend();
+      },
+      
+      addItem: (item) => {
+        set((state) => ({
+          items: [...state.items, { ...item, id: `item-${Date.now()}` }]
+        }));
+        get().saveToBackend();
+      },
+      
+      updateItem: (id, data) => {
+        set((state) => ({
+          items: state.items.map(i => i.id === id ? { ...i, ...data } : i)
+        }));
+        get().saveToBackend();
+      },
+      
+      deleteItem: (id) => {
+        set((state) => ({
+          items: state.items.filter(i => i.id !== id)
+        }));
+        get().saveToBackend();
+      },
+      
+      updateSettings: (settings) => {
+        set((_state) => ({
+          orderPrefix: settings.prefix,
+          orderDigits: settings.digits,
+          nextCounter: settings.counter
+        }));
+        get().saveToBackend();
       }
-      
-      const orderInDone = state.ordersDone.find(o => o.id === id);
-      if (orderInDone && (data.status === 'Ausstehend' || data.status === 'In Bearbeitung' || data.status === 'Warten auf Zahlung')) {
-         const updatedOrder = { ...orderInDone, ...data };
-         return {
-           ordersDone: state.ordersDone.filter(o => o.id !== id),
-           ordersOpen: [updatedOrder, ...state.ordersOpen]
-         };
-      }
-
-      return {
-        ordersOpen: newOrdersOpen,
-        ordersDone: newOrdersDone,
-        ordersArchive: newOrdersArchive
-      };
-    });
-    get().saveToBackend();
-  },
-  
-  deleteOrder: (id) => {
-    set((state) => ({
-      ordersOpen: state.ordersOpen.filter(o => o.id !== id),
-      ordersDone: state.ordersDone.filter(o => o.id !== id),
-      ordersArchive: state.ordersArchive.filter(o => o.id !== id)
-    }));
-    get().saveToBackend();
-  },
-  
-  moveOrderToCompleted: (id) => get().updateOrder(id, { status: 'Abgeschlossen' }),
-  
-  reopenOrder: (id) => get().updateOrder(id, { status: 'In Bearbeitung' }),
-  
-  archiveOrder: (id) => {
-    set((state) => {
-      const order = state.ordersDone.find(o => o.id === id);
-      if (!order) return {};
-      return {
-        ordersDone: state.ordersDone.filter(o => o.id !== id),
-        ordersArchive: [{ ...order, archived: true }, ...state.ordersArchive]
-      };
-    });
-    get().saveToBackend();
-  },
-
-  moveToArchive: (id) => get().archiveOrder(id),
-  
-  unarchiveOrder: (id) => {
-    set((state) => {
-      const order = state.ordersArchive.find(o => o.id === id);
-      if (!order) return {};
-      return {
-        ordersArchive: state.ordersArchive.filter(o => o.id !== id),
-        ordersDone: [{ ...order, archived: false }, ...state.ordersDone]
-      };
-    });
-    get().saveToBackend();
-  },
-  
-  restoreFromArchive: (id) => get().unarchiveOrder(id),
-  
-  deleteFromArchive: (id) => {
-    set((state) => ({
-      ordersArchive: state.ordersArchive.filter(o => o.id !== id)
-    }));
-    get().saveToBackend();
-  },
-  
-  autoArchiveCompleted: () => {
-    set((state) => {
-      const now = Date.now();
-      const oneHour = 60 * 60 * 1000;
-
-      const toArchive = state.ordersDone.filter(o => {
-        if (o.status !== 'Abgeschlossen') return false;
-        const timeRef = o.completedAt ? new Date(o.completedAt).getTime() : 0;
-        return timeRef > 0 && (now - timeRef) > oneHour;
-      });
-
-      if (toArchive.length === 0) return {};
-
-      const toArchiveIds = new Set(toArchive.map(o => o.id));
-      
-      const remaining = state.ordersDone.filter(o => !toArchiveIds.has(o.id));
-      const archived = toArchive.map(o => ({ ...o, archived: true }));
-      
-      return {
-        ordersDone: remaining,
-        ordersArchive: [...archived, ...state.ordersArchive]
-      };
-    });
-    // Auto archive might happen frequently, but it's fine to save.
-    get().saveToBackend();
-  },
-  
-  addCustomer: (customer) => {
-    set((state) => ({
-      customers: [...state.customers, { ...customer, id: `cust-${Date.now()}` }]
-    }));
-    get().saveToBackend();
-  },
-  
-  updateCustomer: (id, data) => {
-    set((state) => ({
-      customers: state.customers.map(c => c.id === id ? { ...c, ...data } : c)
-    }));
-    get().saveToBackend();
-  },
-  
-  deleteCustomer: (id) => {
-    set((state) => ({
-      customers: state.customers.filter(c => c.id !== id)
-    }));
-    get().saveToBackend();
-  },
-  
-  addItem: (item) => {
-    set((state) => ({
-      items: [...state.items, { ...item, id: `item-${Date.now()}` }]
-    }));
-    get().saveToBackend();
-  },
-  
-  updateItem: (id, data) => {
-    set((state) => ({
-      items: state.items.map(i => i.id === id ? { ...i, ...data } : i)
-    }));
-    get().saveToBackend();
-  },
-  
-  deleteItem: (id) => {
-    set((state) => ({
-      items: state.items.filter(i => i.id !== id)
-    }));
-    get().saveToBackend();
-  },
-  
-  updateSettings: (settings) => {
-    set((state) => ({
-      orderPrefix: settings.prefix,
-      orderDigits: settings.digits,
-      nextCounter: settings.counter
-    }));
-    get().saveToBackend();
-  }
-}));
+    }),
+    {
+      name: 'schmelzdepot-order-store',
+      // Nur Daten persistieren, keine Funktionen oder isLoading
+      partialize: (state) => ({
+        ordersOpen: state.ordersOpen,
+        ordersDone: state.ordersDone,
+        ordersArchive: state.ordersArchive,
+        customers: state.customers,
+        items: state.items,
+        orderPrefix: state.orderPrefix,
+        orderDigits: state.orderDigits,
+        nextCounter: state.nextCounter,
+      }),
+    }
+  )
+);
