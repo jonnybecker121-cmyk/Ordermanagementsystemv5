@@ -114,7 +114,16 @@ class StatevApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      let details = '';
+      try {
+        const body = await response.json();
+        details = body?.details || body?.error || '';
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(
+        `StateV API Fehler ${response.status} ${response.statusText}${details ? ': ' + details : ''}`
+      );
     }
 
     return await response.json();
@@ -136,30 +145,17 @@ class StatevApiService {
     }
   }
 
+  // ── Kein Mock-Fallback – echte API-Daten oder Fehler ──────────────────────
+
   async getFactoryInventory(factoryId: string = FACTORY_ID): Promise<Inventory> {
-    try {
-      return await this.makeRequest<Inventory>(`/factory/inventory/${factoryId}`);
-    } catch (error) {
-      console.debug('Using mock inventory:', error);
-      return {
-        totalWeight: 1250,
-        items: [
-          { item: 'Goldbarren', amount: 5, singleWeight: 10, totalWeight: 50, icon: 'gold' },
-          { item: 'Silberbarren', amount: 20, singleWeight: 5, totalWeight: 100, icon: 'silver' },
-          { item: 'Eisen', amount: 100, singleWeight: 2, totalWeight: 200, icon: 'iron' },
-        ]
-      };
-    }
+    return this.makeRequest<Inventory>(`/factory/inventory/${factoryId}`);
   }
 
   async getFactoryMachines(factoryId: string = FACTORY_ID): Promise<Inventory> {
-    try {
-      return await this.makeRequest<Inventory>(`/factory/machine/${factoryId}`);
-    } catch (error) {
-      console.debug('Using mock machines:', error);
-      return { totalWeight: 0, items: [] };
-    }
+    return this.makeRequest<Inventory>(`/factory/machine/${factoryId}`);
   }
+
+  // ── Mock-Fallback bleibt für Bank / Transaktionen ─────────────────────────
 
   async getFactoryBankAccounts(factoryId: string = FACTORY_ID): Promise<BankAccount[]> {
     try {
@@ -211,101 +207,18 @@ class StatevApiService {
     return this.makeRequest<Production[]>(`/factory/productions/${factoryId}`);
   }
 
+  // ── Kein Mock-Fallback – echte API-Daten oder Fehler ──────────────────────
+
   async getFactoryMarketSellOffers(factoryId: string = FACTORY_ID): Promise<SellOffer[]> {
-    try {
-      return await this.makeRequest<SellOffer[]>(`/factory/marketoffers/sell/${factoryId}`);
-    } catch (error) {
-      console.debug('Using mock sell offers:', error);
-      // Return mock data with correct Dashboard format
-      return [
-        {
-          item: 'Goldbarren 100g 999.9',
-          listPrice: 6225.00,
-          pricePerUnit: 6550.00,
-          totalPrice: 32750.00,
-          availableAmount: 5,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          item: 'Silberbarren 1kg 999',
-          listPrice: 807.50,
-          pricePerUnit: 850.00,
-          totalPrice: 8500.00,
-          availableAmount: 10,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          item: 'Platinbarren 50g 999.5',
-          listPrice: 1353.75,
-          pricePerUnit: 1425.00,
-          totalPrice: 7125.00,
-          availableAmount: 3,
-          createdAt: new Date().toISOString(),
-        }
-      ] as SellOffer[];
-    }
+    return this.makeRequest<SellOffer[]>(`/factory/marketoffers/sell/${factoryId}`);
   }
 
   async getFactoryMarketBuyOffers(factoryId: string = FACTORY_ID): Promise<BuyOffer[]> {
-    try {
-      return await this.makeRequest<BuyOffer[]>(`/factory/marketoffers/buy/${factoryId}`);
-    } catch (error) {
-      console.debug('Using mock buy offers:', error);
-      // Return mock data with correct Dashboard format
-      return [
-        {
-          item: 'Altgold gemischt',
-          pricePerUnit: 45.50,
-          totalPrice: 4550.00,
-          availableAmount: 100,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          item: 'Silberschrott 925',
-          pricePerUnit: 0.65,
-          totalPrice: 650.00,
-          availableAmount: 1000,
-          createdAt: new Date().toISOString(),
-        }
-      ] as BuyOffer[];
-    }
+    return this.makeRequest<BuyOffer[]>(`/factory/marketoffers/buy/${factoryId}`);
   }
 
   async getFactoryBuyLog(factoryId: string = FACTORY_ID, limit: number = 50, skip: number = 0): Promise<PurchaseLog[]> {
-    try {
-      return await this.makeRequest<PurchaseLog[]>(`/factory/buyLog/${factoryId}/${limit}/${skip}`);
-    } catch (error) {
-      console.debug('Using mock purchase log:', error);
-      // Return mock data - PurchaseLog has items array
-      return [
-        {
-          seller: 'Goldhandel GmbH',
-          buyer: 'SCHMELZDEPOT',
-          price: 6550.00,
-          discount: 0,
-          items: [
-            {
-              name: 'Goldbarren 50g',
-              amount: 2
-            }
-          ],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          seller: 'Edelmetall AG',
-          buyer: 'SCHMELZDEPOT',
-          price: 285.00,
-          discount: 5,
-          items: [
-            {
-              name: 'Silbermünzen 1oz',
-              amount: 10
-            }
-          ],
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        }
-      ] as PurchaseLog[];
-    }
+    return this.makeRequest<PurchaseLog[]>(`/factory/buyLog/${factoryId}/${limit}/${skip}`);
   }
 }
 

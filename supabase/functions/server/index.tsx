@@ -5,6 +5,9 @@ import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
 
+app.use('*', cors());
+app.use('*', logger(console.log));
+
 // ─── Retry Helper ─────────────────────────────────────────────────────────────
 // Retries a KV operation up to `maxAttempts` times on transient network errors
 // (e.g. connection reset, ECONNRESET, code 104).
@@ -157,12 +160,15 @@ app.get("/make-server-b50ee5dd/sync/status", async (c) => {
 
 const STATEV_BASE = 'https://api.statev.de/req';
 
+// Hardcodierter Fallback-Key – wird genutzt wenn STATEV_API_KEY nicht gesetzt ist
+const STATEV_API_KEY_FALLBACK = 'IPIMSTJVSLFMK3JM1P';
+
+function getStatevApiKey(): string {
+  return Deno.env.get('STATEV_API_KEY') || STATEV_API_KEY_FALLBACK;
+}
+
 app.get("/make-server-b50ee5dd/statev/*", async (c) => {
-  const apiKey = Deno.env.get('STATEV_API_KEY');
-  if (!apiKey) {
-    console.error('StateV Proxy: STATEV_API_KEY is not set');
-    return c.json({ error: 'API key not configured' }, 500);
-  }
+  const apiKey = getStatevApiKey();
 
   // Alles nach /statev/ als Pfad weitergeben
   const path = c.req.path.replace('/make-server-b50ee5dd/statev', '');
@@ -192,11 +198,7 @@ app.get("/make-server-b50ee5dd/statev/*", async (c) => {
 });
 
 app.post("/make-server-b50ee5dd/statev/*", async (c) => {
-  const apiKey = Deno.env.get('STATEV_API_KEY');
-  if (!apiKey) {
-    console.error('StateV Proxy: STATEV_API_KEY is not set');
-    return c.json({ error: 'API key not configured' }, 500);
-  }
+  const apiKey = getStatevApiKey();
 
   const path = c.req.path.replace('/make-server-b50ee5dd/statev', '');
   const url = `${STATEV_BASE}${path}`;

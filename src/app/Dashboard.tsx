@@ -122,9 +122,8 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Fehler beim Laden der Marktdaten';
       setMarketError(errorMessage);
-      console.warn('⚠️ [Dashboard] Cache-Fehler (nicht kritisch):', err);
+      console.error('❌ [Dashboard] StateV-API Marktdaten-Fehler:', err);
       
-      // Set empty arrays on error to prevent undefined errors
       setSellOffers([]);
       setBuyOffers([]);
       setPurchaseLog([]);
