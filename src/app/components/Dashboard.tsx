@@ -551,11 +551,14 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base text-foreground">
-                      <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
-                        <TrendingDown className="h-3 w-3 text-primary-foreground" />
+                      <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
+                        <TrendingDown className="h-4 w-4 text-primary-foreground" />
                       </div>
-                      Kaufangebote
+                      Kaufangebote ({buyOffers.length})
                     </CardTitle>
+                    <CardDescription>
+                      Aktuelle Kaufangebote Ihrer Factory
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-primary">{buyOffers.length}</div>
@@ -654,7 +657,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="buy" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <TrendingDown className="h-4 w-4 text-primary-foreground" />
                         </div>
@@ -707,7 +710,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="log" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <History className="h-4 w-4 text-primary-foreground" />
                         </div>
