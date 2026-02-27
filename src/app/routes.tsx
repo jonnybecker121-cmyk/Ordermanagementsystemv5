@@ -6,7 +6,6 @@ import InventoryManager from "./components/InventoryManager";
 import InvoiceManager from "./components/InvoiceManager";
 import PriceCalculator from "./components/PriceCalculator";
 import ArchiveManager from "./components/ArchiveManager";
-import BankManager from "./components/BankManager";
 
 // Wrappers to pass context from Outlet to component
 function DashboardWrapper() {
@@ -45,7 +44,6 @@ export const router = createBrowserRouter([
       { path: "invoices", Component: InvoiceManager },
       { path: "calculator", Component: PriceCalculatorWrapper },
       { path: "archive", Component: ArchiveManagerWrapper },
-      { path: "bank", Component: BankManager },
     ],
   },
   {

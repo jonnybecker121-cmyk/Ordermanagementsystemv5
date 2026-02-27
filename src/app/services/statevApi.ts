@@ -1,6 +1,14 @@
-const API_BASE_URL = 'https://api.statev.de/req';
-const API_KEY = 'IPIMSTJVSLFMK3JM1P';
-const API_SECRET = 'aa002ebf141bc823f6c768f3bdb500fd34b0efb656f11d70';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+
+// Alle StateV-Calls laufen über den Backend-Proxy, der den API-Secret
+// aus der Umgebungsvariable STATEV_API_SECRET liest.
+const PROXY_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/statev`;
+
+const PROXY_HEADERS = {
+  'Authorization': `Bearer ${publicAnonKey}`,
+  'Content-Type': 'application/json',
+};
+
 const FACTORY_ID = '65ce2e98e3a3ab88426f2794';
 
 export interface Factory {
@@ -97,11 +105,10 @@ export interface PurchaseLog {
 
 class StatevApiService {
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${PROXY_BASE}${endpoint}`, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
+        ...PROXY_HEADERS,
         ...options.headers,
       },
     });
@@ -191,7 +198,6 @@ class StatevApiService {
       method: 'POST',
       body: JSON.stringify({
         request: {
-          apiSecret: API_SECRET,
           factoryId,
           option,
           title: title.substring(0, 64),

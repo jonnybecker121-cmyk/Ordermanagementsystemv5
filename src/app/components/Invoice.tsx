@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
-import headerImage from 'figma:asset/d2fc918383f600f56ee5a43c3dc5c6e2fa70fbf3.png';
+import { invoiceHeaderSrc } from '../assets/invoiceHeader';
 
 const Invoice = ({ data }: { data: any }) => {
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -244,15 +244,15 @@ const Invoice = ({ data }: { data: any }) => {
             paddingBottom: '0'
           }}
         >
-        {/* Header - SCHMELZDEPOT Banner */}
-        <img 
-          src={headerImage} 
-          alt="SCHMELZDEPOT RECHNUNG" 
-          style={{ 
-            width: '100%', 
+        {/* Header – Original SCHMELZDEPOT Banner (base64 eingebettet, kein externes Asset) */}
+        <img
+          src={invoiceHeaderSrc}
+          alt="SCHMELZDEPOT RECHNUNG"
+          style={{
+            width: '100%',
             height: 'auto',
             display: 'block',
-            flexShrink: 0
+            flexShrink: 0,
           }}
         />
 

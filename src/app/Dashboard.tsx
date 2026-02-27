@@ -11,7 +11,6 @@ import {
   ShoppingCart, 
   FileText, 
   Package, 
-  Banknote,
   TrendingUp,
   TrendingDown,
   Users,
@@ -219,12 +218,6 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
       description: 'Bestände prüfen und aktualisieren',
       icon: Package,
       action: 'inventory'
-    },
-    {
-      title: 'Finanzen überprüfen',
-      description: 'Bank- und Kontostände einsehen',
-      icon: Banknote,
-      action: 'bank'
     }
   ];
 

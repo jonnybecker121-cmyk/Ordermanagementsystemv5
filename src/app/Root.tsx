@@ -6,7 +6,6 @@ import {
   FileText,
   Calculator,
   Archive,
-  Banknote,
   Wifi,
   WifiOff,
   RefreshCw,
@@ -146,7 +145,6 @@ export default function Root() {
     { to: "/orders", icon: ShoppingCart, label: "Aufträge" },
     { to: "/inventory", icon: Package, label: "Lager" },
     { to: "/invoices", icon: FileText, label: "Rechnungen" },
-    { to: "/bank", icon: Banknote, label: "Finanzen" },
     { to: "/calculator", icon: Calculator, label: "Kalkulator" },
     { to: "/archive", icon: Archive, label: "Archiv" },
   ];
@@ -156,7 +154,6 @@ export default function Root() {
       orders: "/orders",
       invoices: "/invoices",
       inventory: "/inventory",
-      bank: "/bank",
     };
     navigate(routeMap[path] || path);
   };

@@ -11,7 +11,6 @@ import {
   ShoppingCart, 
   FileText, 
   Package, 
-  Banknote,
   TrendingUp,
   TrendingDown,
   Users,

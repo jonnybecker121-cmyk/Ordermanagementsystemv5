@@ -135,4 +135,80 @@ app.get("/make-server-b50ee5dd/sync/status", async (c) => {
   }
 });
 
+// ─── StateV API Proxy ─────────────────────────────────────────────────────────
+// STATEV_API_KEY  → Bearer-Token für den Authorization-Header (API-Key)
+// STATEV_API_SECRET → wird nur für POST-Body-Requests benötigt (API-Secret)
+
+const STATEV_BASE = 'https://api.statev.de/req';
+
+app.get("/make-server-b50ee5dd/statev/*", async (c) => {
+  const apiKey = Deno.env.get('STATEV_API_KEY');
+  if (!apiKey) {
+    console.error('StateV Proxy: STATEV_API_KEY is not set');
+    return c.json({ error: 'API key not configured' }, 500);
+  }
+
+  // Alles nach /statev/ als Pfad weitergeben
+  const path = c.req.path.replace('/make-server-b50ee5dd/statev', '');
+  const url = `${STATEV_BASE}${path}`;
+
+  try {
+    console.log(`[StateV Proxy] GET ${url}`);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      console.error(`[StateV Proxy] Error ${response.status} for ${url}: ${text}`);
+      return c.json({ error: `StateV API error: ${response.status}`, details: text }, response.status as any);
+    }
+
+    const data = JSON.parse(text);
+    return c.json(data);
+  } catch (err) {
+    console.error(`[StateV Proxy] Fetch failed for ${url}:`, err);
+    return c.json({ error: `Proxy fetch failed: ${err}` }, 500);
+  }
+});
+
+app.post("/make-server-b50ee5dd/statev/*", async (c) => {
+  const apiKey = Deno.env.get('STATEV_API_KEY');
+  if (!apiKey) {
+    console.error('StateV Proxy: STATEV_API_KEY is not set');
+    return c.json({ error: 'API key not configured' }, 500);
+  }
+
+  const path = c.req.path.replace('/make-server-b50ee5dd/statev', '');
+  const url = `${STATEV_BASE}${path}`;
+
+  try {
+    const body = await c.req.json();
+    console.log(`[StateV Proxy] POST ${url}`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      console.error(`[StateV Proxy] Error ${response.status} for ${url}: ${text}`);
+      return c.json({ error: `StateV API error: ${response.status}`, details: text }, response.status as any);
+    }
+
+    const data = JSON.parse(text);
+    return c.json(data);
+  } catch (err) {
+    console.error(`[StateV Proxy] POST failed for ${url}:`, err);
+    return c.json({ error: `Proxy fetch failed: ${err}` }, 500);
+  }
+});
+
 Deno.serve(app.fetch);
