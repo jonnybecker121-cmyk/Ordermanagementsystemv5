@@ -1,23 +1,11 @@
-import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CustomerManager } from './CustomerManager';
 import { ItemManager } from './ItemManager';
 import { OrderCreator } from './OrderCreator';
 import { OrderList } from './OrderList';
 import { OrderNumberSettings } from './OrderNumberSettings';
-import { useOrderStore } from '../store/orderStore';
 
 export default function OrderManager() {
-  const { isLoading } = useOrderStore();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
   return (
     <div className="space-y-6">
       {/* Header */}

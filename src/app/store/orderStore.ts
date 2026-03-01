@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
-import { syncService } from '../services/syncService';
 
 export interface OrderItem {
   name: string;
@@ -53,15 +51,7 @@ interface OrderState {
   orderDigits: number;
   nextCounter: number;
 
-  // Sync tracking
-  _lastSavedAt: number;
-
-  isLoading: boolean;
-
   // Actions
-  loadFromBackend: () => Promise<boolean>;
-  saveToBackend: () => Promise<void>;
-
   createOrder: (data: Partial<Order>) => void;
   updateOrder: (id: string, data: Partial<Order>) => void;
   deleteOrder: (id: string) => void;
@@ -87,131 +77,45 @@ interface OrderState {
 }
 
 const defaultCustomers: Customer[] = [
-  { id: 'cust-1', name: 'Nika_May', email: 'Nika_May@statev.de', phone: '' },
-  { id: 'cust-2', name: 'Titus_Gruber', email: 'Titus_Gruber@statev.de', phone: '' },
-  { id: 'cust-3', name: 'Jannis_Cain', email: 'Jannis_Cain@statev.de', phone: '' },
-  { id: 'cust-4', name: 'Eric_Ludwig', email: 'Eric_Ludwig@statev.de', phone: '' },
-  { id: 'cust-5', name: 'CarFactoryGambinoCo', email: 'CarFactoryGambinoCo@statev.de', phone: '' },
-  { id: 'cust-6', name: 'hyped', email: 'hyped@statev.de', phone: '' },
-  { id: 'cust-7', name: 'Nexus Corp', email: 'Jannis_Cain@statev.de', phone: '' },
-  { id: 'cust-8', name: 'Andre_Johnson', email: 'Andre_Johnson@statev.de', phone: '' },
-  { id: 'cust-9', name: 'PDM Motors', email: 'Valea_Machiavelli@statev.de', phone: '' },
-  { id: 'cust-10', name: 'Hope-Production', email: 'Lucia_Lorenzi@statev.de', phone: '' },
-  { id: 'cust-11', name: 'Robert_Finster', email: 'Robert_Finster@statev.de', phone: '' },
+  { id: 'cust-1',  name: 'Nika_May',             email: 'Nika_May@statev.de',             phone: '' },
+  { id: 'cust-2',  name: 'Titus_Gruber',          email: 'Titus_Gruber@statev.de',          phone: '' },
+  { id: 'cust-3',  name: 'Jannis_Cain',           email: 'Jannis_Cain@statev.de',           phone: '' },
+  { id: 'cust-4',  name: 'Eric_Ludwig',           email: 'Eric_Ludwig@statev.de',           phone: '' },
+  { id: 'cust-5',  name: 'CarFactoryGambinoCo',   email: 'CarFactoryGambinoCo@statev.de',   phone: '' },
+  { id: 'cust-6',  name: 'hyped',                 email: 'hyped@statev.de',                 phone: '' },
+  { id: 'cust-7',  name: 'Nexus Corp',            email: 'Jannis_Cain@statev.de',           phone: '' },
+  { id: 'cust-8',  name: 'Andre_Johnson',         email: 'Andre_Johnson@statev.de',         phone: '' },
+  { id: 'cust-9',  name: 'PDM Motors',            email: 'Valea_Machiavelli@statev.de',     phone: '' },
+  { id: 'cust-10', name: 'Hope-Production',       email: 'Lucia_Lorenzi@statev.de',         phone: '' },
+  { id: 'cust-11', name: 'Robert_Finster',        email: 'Robert_Finster@statev.de',        phone: '' },
 ];
 
 const defaultItems: Item[] = [
-  { id: 'item-1', name: 'Messingbarren', price: 85.00 },
+  { id: 'item-1', name: 'Messingbarren',    price: 85.00 },
   { id: 'item-2', name: 'Sack Glasgranulat', price: 10.50 },
-  { id: 'item-3', name: 'Pappe', price: 1.00 },
-  { id: 'item-4', name: 'Tannenholz', price: 1.00 },
-  { id: 'item-5', name: 'Eisenbarren', price: 17.00 },
-  { id: 'item-6', name: 'Kupferbarren', price: 22.00 },
-  { id: 'item-7', name: 'Silberbarren', price: 25.00 },
-  { id: 'item-8', name: 'Stahlbarren', price: 56.00 },
-  { id: 'item-9', name: 'Goldbarren', price: 65.00 },
+  { id: 'item-3', name: 'Pappe',            price:  1.00 },
+  { id: 'item-4', name: 'Tannenholz',       price:  1.00 },
+  { id: 'item-5', name: 'Eisenbarren',      price: 17.00 },
+  { id: 'item-6', name: 'Kupferbarren',     price: 22.00 },
+  { id: 'item-7', name: 'Silberbarren',     price: 25.00 },
+  { id: 'item-8', name: 'Stahlbarren',      price: 56.00 },
+  { id: 'item-9', name: 'Goldbarren',       price: 65.00 },
 ];
-
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd`;
-
-const AUTH_HEADERS = {
-  'Authorization': `Bearer ${publicAnonKey}`,
-  'Content-Type': 'application/json',
-};
 
 export const useOrderStore = create<OrderState>()(
   persist(
     (set, get) => ({
-      ordersOpen: [],
-      ordersDone: [],
+      ordersOpen:   [],
+      ordersDone:   [],
       ordersArchive: [],
-      customers: defaultCustomers,
-      items: defaultItems,
+      customers:    defaultCustomers,
+      items:        defaultItems,
 
-      orderPrefix: 'SD',
-      orderDigits: 4,
-      nextCounter: 1145,
-      _lastSavedAt: 0,
-      isLoading: false,
+      orderPrefix:  'SD',
+      orderDigits:  4,
+      nextCounter:  1145,
 
-      // Returns true if new data was applied from server
-      loadFromBackend: async (): Promise<boolean> => {
-        try {
-          const response = await fetch(`${BASE_URL}/store/full_data`, {
-            headers: AUTH_HEADERS,
-          });
-          if (!response.ok) return false;
-
-          const { data } = await response.json();
-          if (!data) return false;
-
-          const serverTs: number = data._savedAt || 0;
-          const localTs: number = get()._lastSavedAt;
-
-          // Nur anwenden wenn Server neuer ist
-          if (serverTs <= localTs) return false;
-
-          set({
-            ordersOpen: data.ordersOpen || [],
-            ordersDone: data.ordersDone || [],
-            ordersArchive: data.ordersArchive || [],
-            customers: data.customers?.length > 0 ? data.customers : defaultCustomers,
-            items: data.items?.length > 0 ? data.items : defaultItems,
-            orderPrefix: data.orderPrefix || 'SD',
-            orderDigits: data.orderDigits || 4,
-            nextCounter: data.nextCounter || 1145,
-            _lastSavedAt: serverTs,
-          });
-          return true;
-        } catch (error) {
-          console.error('OrderStore: Backend-Load fehlgeschlagen, nutze LocalStorage-Cache:', error);
-          return false;
-        }
-      },
-
-      saveToBackend: async () => {
-        const state = get();
-        if (state.isLoading) return;
-
-        // Wenn offline → Save aufschoben, wird beim Reconnect nachgeholt
-        if (syncService.offline) {
-          syncService.registerPendingSave(() => useOrderStore.getState().saveToBackend());
-          console.debug('OrderStore: Offline – Backend-Save aufgeschoben');
-          return;
-        }
-
-        const timestamp = Date.now();
-        const dataToSave = {
-          ordersOpen: state.ordersOpen,
-          ordersDone: state.ordersDone,
-          ordersArchive: state.ordersArchive,
-          customers: state.customers,
-          items: state.items,
-          orderPrefix: state.orderPrefix,
-          orderDigits: state.orderDigits,
-          nextCounter: state.nextCounter,
-          _savedAt: timestamp,
-        };
-
-        // Optimistisch setzen – verhindert, dass ein laufender Poll-Zyklus
-        // ältere Server-Daten über die gerade geänderten lokalen Daten schreibt
-        set({ _lastSavedAt: timestamp });
-
-        try {
-          const res = await fetch(`${BASE_URL}/store/full_data`, {
-            method: 'POST',
-            headers: AUTH_HEADERS,
-            body: JSON.stringify(dataToSave),
-          });
-          if (!res.ok) {
-            console.debug(`OrderStore: Backend-Save fehlgeschlagen (HTTP ${res.status}) – Daten bleiben im LocalStorage gesichert`);
-          }
-        } catch (error) {
-          console.debug('OrderStore: Backend-Save Netzwerkfehler – Daten bleiben im LocalStorage gesichert:', error);
-          // Bei Netzwerkfehler pending save registrieren
-          syncService.registerPendingSave(() => useOrderStore.getState().saveToBackend());
-        }
-      },
+      // ── Orders ────────────────────────────────────────────────────────────
 
       createOrder: (data) => {
         set((state) => {
@@ -235,7 +139,6 @@ export const useOrderStore = create<OrderState>()(
             nextCounter: state.nextCounter + 1,
           };
         });
-        get().saveToBackend();
       },
 
       updateOrder: (id, data) => {
@@ -279,36 +182,33 @@ export const useOrderStore = create<OrderState>()(
           }
 
           return {
-            ordersOpen: updateInList(state.ordersOpen),
-            ordersDone: updateInList(state.ordersDone),
+            ordersOpen:   updateInList(state.ordersOpen),
+            ordersDone:   updateInList(state.ordersDone),
             ordersArchive: updateInList(state.ordersArchive),
           };
         });
-        get().saveToBackend();
       },
 
       deleteOrder: (id) => {
         set((state) => ({
-          ordersOpen: state.ordersOpen.filter((o) => o.id !== id),
-          ordersDone: state.ordersDone.filter((o) => o.id !== id),
+          ordersOpen:    state.ordersOpen.filter((o) => o.id !== id),
+          ordersDone:    state.ordersDone.filter((o) => o.id !== id),
           ordersArchive: state.ordersArchive.filter((o) => o.id !== id),
         }));
-        get().saveToBackend();
       },
 
       moveOrderToCompleted: (id) => get().updateOrder(id, { status: 'Abgeschlossen' }),
-      reopenOrder: (id) => get().updateOrder(id, { status: 'In Bearbeitung' }),
+      reopenOrder:          (id) => get().updateOrder(id, { status: 'In Bearbeitung' }),
 
       archiveOrder: (id) => {
         set((state) => {
           const order = state.ordersDone.find((o) => o.id === id);
           if (!order) return {};
           return {
-            ordersDone: state.ordersDone.filter((o) => o.id !== id),
+            ordersDone:    state.ordersDone.filter((o) => o.id !== id),
             ordersArchive: [{ ...order, archived: true }, ...state.ordersArchive],
           };
         });
-        get().saveToBackend();
       },
 
       moveToArchive: (id) => get().archiveOrder(id),
@@ -319,10 +219,9 @@ export const useOrderStore = create<OrderState>()(
           if (!order) return {};
           return {
             ordersArchive: state.ordersArchive.filter((o) => o.id !== id),
-            ordersDone: [{ ...order, archived: false }, ...state.ordersDone],
+            ordersDone:    [{ ...order, archived: false }, ...state.ordersDone],
           };
         });
-        get().saveToBackend();
       },
 
       restoreFromArchive: (id) => get().unarchiveOrder(id),
@@ -331,7 +230,6 @@ export const useOrderStore = create<OrderState>()(
         set((state) => ({
           ordersArchive: state.ordersArchive.filter((o) => o.id !== id),
         }));
-        get().saveToBackend();
       },
 
       autoArchiveCompleted: () => {
@@ -346,73 +244,60 @@ export const useOrderStore = create<OrderState>()(
           if (toArchive.length === 0) return {};
           const ids = new Set(toArchive.map((o) => o.id));
           return {
-            ordersDone: state.ordersDone.filter((o) => !ids.has(o.id)),
+            ordersDone:    state.ordersDone.filter((o) => !ids.has(o.id)),
             ordersArchive: [...toArchive.map((o) => ({ ...o, archived: true })), ...state.ordersArchive],
           };
         });
-        get().saveToBackend();
       },
+
+      // ── Customers ─────────────────────────────────────────────────────────
 
       addCustomer: (customer) => {
         set((state) => ({
           customers: [...state.customers, { ...customer, id: `cust-${Date.now()}` }],
         }));
-        get().saveToBackend();
       },
       updateCustomer: (id, data) => {
         set((state) => ({
           customers: state.customers.map((c) => (c.id === id ? { ...c, ...data } : c)),
         }));
-        get().saveToBackend();
       },
       deleteCustomer: (id) => {
         set((state) => ({
           customers: state.customers.filter((c) => c.id !== id),
         }));
-        get().saveToBackend();
       },
+
+      // ── Items ─────────────────────────────────────────────────────────────
 
       addItem: (item) => {
         set((state) => ({
           items: [...state.items, { ...item, id: `item-${Date.now()}` }],
         }));
-        get().saveToBackend();
       },
       updateItem: (id, data) => {
         set((state) => ({
           items: state.items.map((i) => (i.id === id ? { ...i, ...data } : i)),
         }));
-        get().saveToBackend();
       },
       deleteItem: (id) => {
         set((state) => ({
           items: state.items.filter((i) => i.id !== id),
         }));
-        get().saveToBackend();
       },
+
+      // ── Settings ──────────────────────────────────────────────────────────
 
       updateSettings: (settings) => {
         set({
-          orderPrefix: settings.prefix,
-          orderDigits: settings.digits,
-          nextCounter: settings.counter,
+          orderPrefix:  settings.prefix,
+          orderDigits:  settings.digits,
+          nextCounter:  settings.counter,
         });
-        get().saveToBackend();
       },
     }),
     {
       name: 'schmelzdepot-order-store',
-      partialize: (state) => ({
-        ordersOpen: state.ordersOpen,
-        ordersDone: state.ordersDone,
-        ordersArchive: state.ordersArchive,
-        customers: state.customers,
-        items: state.items,
-        orderPrefix: state.orderPrefix,
-        orderDigits: state.orderDigits,
-        nextCounter: state.nextCounter,
-        _lastSavedAt: state._lastSavedAt,
-      }),
     }
   )
 );

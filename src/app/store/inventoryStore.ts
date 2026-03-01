@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
-import { syncService } from '../services/syncService';
 
 export interface InventoryLogEntry {
   id: string;
@@ -39,87 +37,18 @@ export interface ApiSnapshot {
 interface InventoryState {
   logs: InventoryLogEntry[];
   lastSnapshot: ApiSnapshot | null;
-  _lastSavedAt: number;
 
   addLog: (entry: Omit<InventoryLogEntry, 'id' | 'timestamp'>) => void;
   clearLogs: () => void;
   updateSnapshot: (snapshot: ApiSnapshot) => void;
   setLogs: (logs: InventoryLogEntry[]) => void;
-
-  loadFromBackend: () => Promise<boolean>;
-  saveToBackend: () => Promise<void>;
 }
-
-const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd`;
-
-const AUTH_HEADERS = {
-  'Authorization': `Bearer ${publicAnonKey}`,
-  'Content-Type': 'application/json',
-};
 
 export const useInventoryStore = create<InventoryState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       logs: [],
       lastSnapshot: null,
-      _lastSavedAt: 0,
-
-      // Returns true if new data was applied from server
-      loadFromBackend: async (): Promise<boolean> => {
-        try {
-          const response = await fetch(`${BASE_URL}/store/inventory_data`, {
-            headers: AUTH_HEADERS,
-          });
-          if (!response.ok) return false;
-
-          const { data } = await response.json();
-          if (!data) return false;
-
-          const serverTs: number = data._savedAt || 0;
-          const localTs: number = get()._lastSavedAt;
-
-          if (serverTs <= localTs) return false;
-
-          set({
-            logs: data.logs || [],
-            lastSnapshot: data.lastSnapshot || null,
-            _lastSavedAt: serverTs,
-          });
-          return true;
-        } catch (error) {
-          console.error('InventoryStore: Backend-Load fehlgeschlagen, nutze LocalStorage-Cache:', error);
-          return false;
-        }
-      },
-
-      saveToBackend: async () => {
-        const state = get();
-        const timestamp = Date.now();
-
-        if (syncService.offline) {
-          syncService.registerPendingSave(() => useInventoryStore.getState().saveToBackend());
-          console.debug('InventoryStore: Offline – Backend-Save aufgeschoben');
-          return;
-        }
-
-        try {
-          const res = await fetch(`${BASE_URL}/store/inventory_data`, {
-            method: 'POST',
-            headers: AUTH_HEADERS,
-            body: JSON.stringify({
-              logs: state.logs,
-              lastSnapshot: state.lastSnapshot,
-              _savedAt: timestamp,
-            }),
-          });
-          if (res.ok) {
-            set({ _lastSavedAt: timestamp });
-          }
-        } catch (error) {
-          console.warn('InventoryStore: Backend-Save fehlgeschlagen, Daten im LocalStorage gesichert:', error);
-          syncService.registerPendingSave(() => useInventoryStore.getState().saveToBackend());
-        }
-      },
 
       addLog: (entry) => {
         set((state) => ({
@@ -132,31 +61,22 @@ export const useInventoryStore = create<InventoryState>()(
             ...state.logs,
           ],
         }));
-        get().saveToBackend();
       },
 
       clearLogs: () => {
         set({ logs: [], lastSnapshot: null });
-        get().saveToBackend();
       },
 
       updateSnapshot: (snapshot) => {
         set({ lastSnapshot: snapshot });
-        get().saveToBackend();
       },
 
       setLogs: (logs) => {
         set({ logs });
-        get().saveToBackend();
       },
     }),
     {
       name: 'schmelzdepot-inventory-store',
-      partialize: (state) => ({
-        logs: state.logs,
-        lastSnapshot: state.lastSnapshot,
-        _lastSavedAt: state._lastSavedAt,
-      }),
     }
   )
 );
