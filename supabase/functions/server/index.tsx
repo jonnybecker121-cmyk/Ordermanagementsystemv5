@@ -229,4 +229,60 @@ app.post("/make-server-b50ee5dd/statev/*", async (c) => {
   }
 });
 
+// ─── Market Auctions Endpoints ────────────────────────────────────────────────
+
+app.get("/make-server-b50ee5dd/market/my/auctions/import", async (c) => {
+  const apiKey = getStatevApiKey();
+  const url = `${STATEV_BASE}/market/my/auctions/import`;
+
+  try {
+    console.log(`[Market Auctions] GET ${url}`);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      console.error(`[Market Auctions] Import error ${response.status}: ${text}`);
+      return c.json({ error: `StateV API error: ${response.status}`, details: text }, response.status as any);
+    }
+
+    const data = JSON.parse(text);
+    return c.json(data);
+  } catch (err) {
+    console.error(`[Market Auctions] Import fetch failed:`, err);
+    return c.json({ error: `Failed to fetch import auctions: ${err}` }, 500);
+  }
+});
+
+app.get("/make-server-b50ee5dd/market/my/auctions/export", async (c) => {
+  const apiKey = getStatevApiKey();
+  const url = `${STATEV_BASE}/market/my/auctions/export`;
+
+  try {
+    console.log(`[Market Auctions] GET ${url}`);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      console.error(`[Market Auctions] Export error ${response.status}: ${text}`);
+      return c.json({ error: `StateV API error: ${response.status}`, details: text }, response.status as any);
+    }
+
+    const data = JSON.parse(text);
+    return c.json(data);
+  } catch (err) {
+    console.error(`[Market Auctions] Export fetch failed:`, err);
+    return c.json({ error: `Failed to fetch export auctions: ${err}` }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

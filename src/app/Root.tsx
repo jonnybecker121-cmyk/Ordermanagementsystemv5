@@ -7,6 +7,7 @@ import {
   Calculator,
   Archive,
   HardDrive,
+  Gavel,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useOrderStore } from "./store/orderStore";
@@ -58,6 +59,7 @@ export default function Root() {
     { to: "/inventory", icon: Package,         label: "Lager" },
     { to: "/invoices",  icon: FileText,        label: "Rechnungen" },
     { to: "/calculator",icon: Calculator,      label: "Kalkulator" },
+    { to: "/auctions",  icon: Gavel,           label: "Auktionen" },
     { to: "/archive",   icon: Archive,         label: "Archiv" },
   ];
 

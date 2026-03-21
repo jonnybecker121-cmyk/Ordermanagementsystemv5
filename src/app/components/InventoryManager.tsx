@@ -645,7 +645,7 @@ export default function InventoryManager({ syncTrigger = 0 }: InventoryManagerPr
                     <History className="h-5 w-5 text-primary" />
                     Bewegungs-Log ({filteredLogs.length})
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     Auto-Reload alle 5 Min + Vollautomatisches Snapshot-Tracking
                     <Badge 
                       variant="outline" 
@@ -653,7 +653,7 @@ export default function InventoryManager({ syncTrigger = 0 }: InventoryManagerPr
                     >
                       AUTO 5 Min
                     </Badge>
-                  </CardDescription>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3">
