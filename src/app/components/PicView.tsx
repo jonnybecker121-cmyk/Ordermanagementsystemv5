@@ -23,8 +23,10 @@ export default function PicView() {
         <iframe
           src="https://pic.statev.de/"
           title="PIC"
+          name="pic-frame"
           className="w-full h-full border-0"
           allow="clipboard-read; clipboard-write"
+          sandbox="allow-forms allow-scripts allow-same-origin allow-downloads"
         />
       </div>
     </div>
