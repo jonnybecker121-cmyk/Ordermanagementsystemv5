@@ -162,9 +162,14 @@ const STATEV_BASE = 'https://api.statev.de/req';
 
 // Hardcodierter Fallback-Key – wird genutzt wenn STATEV_API_KEY nicht gesetzt ist
 const STATEV_API_KEY_FALLBACK = 'IPIMSTJVSLFMK3JM1P';
+const STATEV_API_SECRET_FALLBACK = 'aa002ebf141bc823f6c768f3bdb500fd34b0efb656f11d70';
 
 function getStatevApiKey(): string {
   return Deno.env.get('STATEV_API_KEY') || STATEV_API_KEY_FALLBACK;
+}
+
+function getStatevApiSecret(): string {
+  return Deno.env.get('STATEV_API_SECRET') || STATEV_API_SECRET_FALLBACK;
 }
 
 app.get("/make-server-b50ee5dd/statev/*", async (c) => {
@@ -199,12 +204,19 @@ app.get("/make-server-b50ee5dd/statev/*", async (c) => {
 
 app.post("/make-server-b50ee5dd/statev/*", async (c) => {
   const apiKey = getStatevApiKey();
+  const apiSecret = getStatevApiSecret();
 
   const path = c.req.path.replace('/make-server-b50ee5dd/statev', '');
   const url = `${STATEV_BASE}${path}`;
 
   try {
-    const body = await c.req.json();
+    let body = await c.req.json();
+
+    // Für factory/options POST-Requests muss der API_SECRET im Body sein
+    if (path === '/factory/options' && body.request) {
+      body.request.apiSecret = apiSecret;
+    }
+
     console.log(`[StateV Proxy] POST ${url}`);
     const response = await fetch(url, {
       method: 'POST',

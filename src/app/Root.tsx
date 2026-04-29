@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -8,6 +8,9 @@ import {
   Archive,
   HardDrive,
   Gavel,
+  ArrowLeftRight,
+  MessageSquare,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useOrderStore } from "./store/orderStore";
@@ -37,6 +40,7 @@ export default function Root() {
   const [syncTrigger, setSyncTrigger] = useState(0);
   const { autoArchiveCompleted } = useOrderStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAlternateApp, setShowAlternateApp] = useState(false);
 
   // Auto-archive completed orders older than 1 hour
   useEffect(() => {
@@ -60,6 +64,8 @@ export default function Root() {
     { to: "/invoices",  icon: FileText,        label: "Rechnungen" },
     { to: "/calculator",icon: Calculator,      label: "Kalkulator" },
     { to: "/auctions",  icon: Gavel,           label: "Auktionen" },
+    { to: "/messenger", icon: MessageSquare,   label: "V-NET" },
+    { to: "/pic",       icon: ImageIcon,       label: "PIC" },
     { to: "/archive",   icon: Archive,         label: "Archiv" },
   ];
 
@@ -115,7 +121,16 @@ export default function Root() {
             <p className="text-xs text-muted-foreground truncate">Schmelzdepot</p>
           </div>
         </div>
-        <div className="border-t border-border/50 mt-1">
+        <div className="border-t border-border/50">
+          <button
+            onClick={() => setShowAlternateApp(!showAlternateApp)}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+            <span>{showAlternateApp ? 'Zurück zu Schmelzdepot' : 'Zur anderen App wechseln'}</span>
+          </button>
+        </div>
+        <div className="border-t border-border/50">
           <LocalIndicator />
         </div>
       </div>
@@ -171,9 +186,17 @@ export default function Root() {
             fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11"',
           }}
         >
-          <div className="max-w-7xl mx-auto">
-            <Outlet context={{ onNavigate: handleNavigate, syncTrigger }} />
-          </div>
+          {showAlternateApp ? (
+            <iframe
+              src="https://www.figma.com/make/J2pq9qomyhxiHCdOBgcYH5/Order-Management-System--Kopie-?p=f&t=pVYIYuGh0XjJDosF-0&fullscreen=1"
+              className="w-full h-full border-0"
+              title="Alternative App"
+            />
+          ) : (
+            <div className="max-w-7xl mx-auto">
+              <Outlet context={{ onNavigate: handleNavigate, syncTrigger }} />
+            </div>
+          )}
         </div>
       </main>
     </div>

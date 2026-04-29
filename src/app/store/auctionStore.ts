@@ -5,7 +5,7 @@ export interface ImportAuction {
   item: string;
   bidAmount: number;
   isLastBidderMe: boolean;
-  auctionEnd: Date;
+  auctionEnd: Date | string;
   icon?: string;
 }
 
@@ -13,7 +13,7 @@ export interface ExportAuction {
   item: string;
   bidAmount: number;
   isLastBidderMe: boolean;
-  auctionEnd: Date;
+  auctionEnd: Date | string;
   amount: number;
   singleWeight: number;
   totalWeight: number;

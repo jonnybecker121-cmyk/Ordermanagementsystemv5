@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { useAuctionStore } from '../store/auctionStore';
 import { RefreshCw, Package, PackageOpen, Timer, Coins, Weight } from 'lucide-react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+const STATEV_BASE = 'https://api.statev.de/req';
+const STATEV_API_KEY = 'IPIMSTJVSLFMK3JM1P';
 
 export default function AuctionManager() {
   const {
@@ -26,10 +27,10 @@ export default function AuctionManager() {
     try {
       // Fetch Import Auctions
       const importResponse = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/market/my/auctions/import`,
+        `${STATEV_BASE}/market/my/auctions/import`,
         {
           headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
+            Authorization: `Bearer ${STATEV_API_KEY}`,
           },
         }
       );
@@ -47,10 +48,10 @@ export default function AuctionManager() {
 
       // Fetch Export Auctions
       const exportResponse = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-b50ee5dd/market/my/auctions/export`,
+        `${STATEV_BASE}/market/my/auctions/export`,
         {
           headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
+            Authorization: `Bearer ${STATEV_API_KEY}`,
           },
         }
       );
@@ -82,9 +83,16 @@ export default function AuctionManager() {
     }
   }, []);
 
-  const getTimeRemaining = (endDate: Date) => {
+  const getTimeRemaining = (endDate: Date | string) => {
+    if (!endDate) return 'Ungültig';
+    
     const now = new Date();
-    const diff = endDate.getTime() - now.getTime();
+    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+    
+    // Check if conversion was successful
+    if (isNaN(end.getTime())) return 'Ungültig';
+    
+    const diff = end.getTime() - now.getTime();
 
     if (diff <= 0) return 'Abgelaufen';
 
