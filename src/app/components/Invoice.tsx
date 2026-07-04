@@ -376,36 +376,7 @@ const Invoice = ({ data }: { data: any }) => {
           </table>
 
           {/* Summary Section */}
-          <div style={{ 
-            marginTop: 'auto',
-            paddingTop: '24px',
-            borderTop: '2px solid #e5e7eb'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              padding: '8px 0',
-              fontSize: '16px'
-            }}>
-              <span style={{ color: '#6b7280' }}>Zwischensumme</span>
-              <span style={{ fontWeight: 'bold', color: '#111827' }}>{formatter.format(sub)}</span>
-            </div>
-            
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              padding: '8px 0',
-              fontSize: '16px'
-            }}>
-              <span style={{ color: '#6b7280' }}>Steuer (+5%)</span>
-              <span style={{ fontWeight: 'bold', color: '#111827' }}>+{formatter.format(fee)}</span>
-            </div>
-
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              padding: '8px 0',
-              fontSize: '16px'
+       
             }}>
               <span style={{ color: '#6b7280' }}>Gesamtsumme</span>
               <span style={{ fontWeight: 'bold', color: '#111827' }}>{formatter.format(net)}</span>
