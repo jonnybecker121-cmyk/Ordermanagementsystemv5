@@ -1,7 +1,7 @@
 // Direkte StateV-API-Calls (ohne Supabase-Proxy)
 const STATEV_BASE = 'https://api.statev.de/req';
-const STATEV_API_KEY = 'IPIMSTJVSLFMK3JM1P';
-const STATEV_API_SECRET = 'aa002ebf141bc823f6c768f3bdb500fd34b0efb656f11d70';
+const STATEV_API_KEY = 'QE5362BXWBQGS89EE7';
+const STATEV_API_SECRET = 'fd46295715a3b222ad75ea34daecf050e69b1c753dd8dd54';
 
 const STATEV_HEADERS = {
   'Authorization': `Bearer ${STATEV_API_KEY}`,
