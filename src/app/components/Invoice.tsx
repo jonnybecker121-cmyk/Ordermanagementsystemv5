@@ -22,9 +22,6 @@ const Invoice = ({ data }: { data: any }) => {
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('de-DE');
   };
-
-  // Header-Bild Pfad (vom Import)
-  // const headerImage = "/header_invoice.svg";
   
   const {
     customerName,
@@ -33,14 +30,12 @@ const Invoice = ({ data }: { data: any }) => {
     orderNumber,
     deliveryDate,
     reference,
-    paymentNote,
     vban,
     items = []
   } = data;
 
   // SCHMELZDEPOT: Immer +5% Steuer
   const taxPercent = 5;
-  const taxMode = 'plus';
 
   const calcSubtotal = () => {
     return items.reduce((sum: number, item: any) => {
@@ -52,8 +47,6 @@ const Invoice = ({ data }: { data: any }) => {
   };
 
   const sub = calcSubtotal();
-  const fee = sub * (taxPercent / 100);
-  const net = taxMode === 'plus' ? sub + fee : Math.max(0, sub - fee);
 
   const handleExport = async () => {
     if (!invoiceRef.current) {
@@ -61,7 +54,6 @@ const Invoice = ({ data }: { data: any }) => {
       return;
     }
 
-    // Check if html2canvas is available
     if (!html2canvas) {
       console.error('❌ html2canvas not loaded');
       alert('html2canvas wird geladen... Bitte versuchen Sie es in wenigen Sekunden erneut.');
@@ -71,18 +63,15 @@ const Invoice = ({ data }: { data: any }) => {
     try {
       console.log('🚀 Starting PNG export...');
       
-      // Get the wrapper and invoice element
       const wrapper = invoiceRef.current.parentElement;
       const originalTransform = wrapper ? wrapper.style.transform : null;
       
-      // Temporarily remove transform for export
       if (wrapper) {
         wrapper.style.transform = 'none';
       }
       
       const EXPORT_WIDTH = 949;
       
-      // Create canvas – kein festes height, html2canvas erkennt die Höhe selbst
       const canvas = await html2canvas(invoiceRef.current, {
         backgroundColor: '#ffffff',
         scale: 1,
@@ -109,14 +98,12 @@ const Invoice = ({ data }: { data: any }) => {
             clonedElement.style.backgroundColor = '#ffffff';
             clonedElement.style.paddingBottom = '0';
             
-            // marginTop: auto am Footer entfernen → Footer fließt natürlich ans Ende
             const children = clonedElement.children;
             const footerEl = children[children.length - 1] as HTMLElement;
             if (footerEl) {
               footerEl.style.marginTop = '0';
             }
             
-            // Wrapper-Transform zurücksetzen
             const clonedWrapper = clonedElement.parentElement;
             if (clonedWrapper) {
               clonedWrapper.style.zoom = '1';
@@ -126,7 +113,6 @@ const Invoice = ({ data }: { data: any }) => {
               clonedWrapper.style.backgroundColor = '#ffffff';
             }
             
-            // Farben sicherstellen
             const allElements = clonedElement.querySelectorAll('*');
             allElements.forEach(el => {
               if (el instanceof HTMLElement) {
@@ -144,7 +130,6 @@ const Invoice = ({ data }: { data: any }) => {
         }
       });
       
-      // Transform wiederherstellen
       if (wrapper && originalTransform) {
         wrapper.style.transform = originalTransform;
       }
@@ -153,7 +138,6 @@ const Invoice = ({ data }: { data: any }) => {
       
       const link = document.createElement('a');
       link.download = `SCHMELZDEPOT_Rechnung_${orderNumber || 'INVOICE'}.png`;
-      // Export as 32-bit PNG (RGBA) with maximum quality
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
       
@@ -220,236 +204,194 @@ const Invoice = ({ data }: { data: any }) => {
           width: '949px'
         }}
         >
-        <div 
-          ref={invoiceRef} 
-          data-invoice-export="true"
-          style={{ 
-            width: '949px',
-            minHeight: 'auto',
-            border: 'none',
-            boxSizing: 'border-box',
-            display: 'flex',
-            flexDirection: 'column',
-            fontFamily: 'Arial, sans-serif',
-            backgroundColor: '#ffffff',
-            fontSize: '16px',
-            boxShadow: 'none',
-            paddingBottom: '0'
-          }}
-        >
-        {/* Header – Original SCHMELZDEPOT Banner (base64 eingebettet, kein externes Asset) */}
-        <img
-          src={invoiceHeaderSrc}
-          alt="SCHMELZDEPOT RECHNUNG"
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-            flexShrink: 0,
-          }}
-        />
+          <div 
+            ref={invoiceRef} 
+            data-invoice-export="true"
+            style={{ 
+              width: '949px',
+              minHeight: 'auto',
+              border: 'none',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'Arial, sans-serif',
+              backgroundColor: '#ffffff',
+              fontSize: '16px',
+              boxShadow: 'none',
+              paddingBottom: '0'
+            }}
+          >
+            {/* Header – Original SCHMELZDEPOT Banner */}
+            <img
+              src={invoiceHeaderSrc}
+              alt="SCHMELZDEPOT RECHNUNG"
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                flexShrink: 0,
+              }}
+            />
 
-        {/* Customer Information Section */}
-        <div style={{ 
-          borderBottom: '2px solid #e5e7eb', 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr',
-          flexShrink: 0 
-        }}>
-          {/* Left Column - Customer Details */}
-          <div style={{ padding: '32px', borderRight: '2px solid #e5e7eb' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Kundenname</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>{customerName}</div>
-            </div>
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>E-Mail</div>
-              <div style={{ fontSize: '18px', color: '#111827' }}>{customerEmail}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Telefon</div>
-              <div style={{ fontSize: '18px', color: '#111827' }}>{customerPhone}</div>
-            </div>
-          </div>
+            {/* Customer Information Section */}
+            <div style={{ 
+              borderBottom: '2px solid #e5e7eb', 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr',
+              flexShrink: 0 
+            }}>
+              {/* Left Column - Customer Details */}
+              <div style={{ padding: '32px', borderRight: '2px solid #e5e7eb' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Kundenname</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>{customerName}</div>
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>E-Mail</div>
+                  <div style={{ fontSize: '18px', color: '#111827' }}>{customerEmail}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Telefon</div>
+                  <div style={{ fontSize: '18px', color: '#111827' }}>{customerPhone}</div>
+                </div>
+              </div>
 
-          {/* Right Column - Order Details */}
-          <div style={{ padding: '32px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Bestellnummer</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>{orderNumber}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Lieferdatum</div>
-              <div style={{ fontSize: '18px', color: '#111827' }}>
-                {deliveryDate ? formatDate(deliveryDate) : '-'}
+              {/* Right Column - Order Details */}
+              <div style={{ padding: '32px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Bestellnummer</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>{orderNumber}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Lieferdatum</div>
+                  <div style={{ fontSize: '18px', color: '#111827' }}>
+                    {deliveryDate ? formatDate(deliveryDate) : '-'}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Items Table - Progressive Expansion */}
-        <div style={{ 
-          padding: '32px', 
-          flex: 1,
-          minHeight: '600px',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <table style={{ 
-            width: '100%', 
-            borderCollapse: 'collapse',
-            marginBottom: '32px'
-          }}>
-            {/* Table Header - Orange */}
-            <thead>
-              <tr style={{ 
-                backgroundColor: '#ff8000', 
-                color: '#ffffff'
-              }}>
-                <th style={{ 
-                  textAlign: 'left', 
-                  padding: '16px 12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}>ARTIKEL</th>
-                <th style={{ 
-                  textAlign: 'center', 
-                  padding: '16px 12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}>MENGE</th>
-                <th style={{ 
-                  textAlign: 'right', 
-                  padding: '16px 12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}>PREIS</th>
-                <th style={{ 
-                  textAlign: 'right', 
-                  padding: '16px 12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}>GESAMT</th>
-              </tr>
-            </thead>
-
-            {/* Table Body */}
-            <tbody>
-              {items.map((item: any, index: number) => {
-                const itemTotal = item.price * item.qty * (1 - (item.disc || 0) / 100);
-                return (
-                  <tr 
-                    key={index} 
-                    style={{ 
-                      borderBottom: '1px solid #e5e7eb',
-                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
-                    }}
-                  >
-                    <td style={{ 
-                      padding: '14px 12px', 
-                      fontSize: '16px',
-                      color: '#111827'
-                    }}>{item.name}</td>
-                    <td style={{ 
-                      padding: '14px 12px', 
-                      textAlign: 'center',
-                      fontSize: '16px',
-                      color: '#111827'
-                    }}>{item.qty}</td>
-                    <td style={{ 
-                      padding: '14px 12px', 
-                      textAlign: 'right',
-                      fontSize: '16px',
-                      color: '#111827'
-                    }}>{formatter.format(item.price)}</td>
-                    <td style={{ 
-                      padding: '14px 12px', 
-                      textAlign: 'right',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      color: '#111827'
-                    }}>{formatter.format(itemTotal)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Summary Section */}
-       
-            }}>
-              <span style={{ color: '#6b7280' }}>Gesamtsumme</span>
-              <span style={{ fontWeight: 'bold', color: '#111827' }}>{formatter.format(net)}</span>
-            </div>
-
+            {/* Items Table & Summary */}
             <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              paddingTop: '20px',
-              marginTop: '20px',
-              borderTop: '3px solid #111827',
-              fontSize: '22px',
-              fontWeight: 'bold'
+              padding: '32px', 
+              flex: 1,
+              minHeight: '600px',
+              display: 'flex',
+              flexDirection: 'column'
             }}>
-              <span style={{ color: '#111827' }}>Zahlungssumme</span>
-              <span style={{ color: '#ff8000' }}>{formatter.format(sub)}</span>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                marginBottom: '32px'
+              }}>
+                <thead>
+                  <tr style={{ 
+                    backgroundColor: '#ff8000', 
+                    color: '#ffffff'
+                  }}>
+                    <th style={{ textAlign: 'left', padding: '16px 12px', fontSize: '16px', fontWeight: 'bold' }}>ARTIKEL</th>
+                    <th style={{ textAlign: 'center', padding: '16px 12px', fontSize: '16px', fontWeight: 'bold' }}>MENGE</th>
+                    <th style={{ textAlign: 'right', padding: '16px 12px', fontSize: '16px', fontWeight: 'bold' }}>PREIS</th>
+                    <th style={{ textAlign: 'right', padding: '16px 12px', fontSize: '16px', fontWeight: 'bold' }}>GESAMT</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {items.map((item: any, index: number) => {
+                    const itemTotal = item.price * item.qty * (1 - (item.disc || 0) / 100);
+                    return (
+                      <tr 
+                        key={index} 
+                        style={{ 
+                          borderBottom: '1px solid #e5e7eb',
+                          backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
+                        }}
+                      >
+                        <td style={{ padding: '14px 12px', fontSize: '16px', color: '#111827' }}>{item.name}</td>
+                        <td style={{ padding: '14px 12px', textAlign: 'center', fontSize: '16px', color: '#111827' }}>{item.qty}</td>
+                        <td style={{ padding: '14px 12px', textAlign: 'right', fontSize: '16px', color: '#111827' }}>{formatter.format(item.price)}</td>
+                        <td style={{ padding: '14px 12px', textAlign: 'right', fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>{formatter.format(itemTotal)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Summary Section - Nur noch Zahlungssumme */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'flex-end',
+                marginTop: 'auto' 
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  width: '350px',
+                  paddingTop: '20px',
+                  borderTop: '3px solid #111827',
+                  fontSize: '22px',
+                  fontWeight: 'bold'
+                }}>
+                  <span style={{ color: '#111827' }}>Zahlungssumme</span>
+                  <span style={{ color: '#ff8000' }}>{formatter.format(sub)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer - Orange with Payment Info */}
+            <div 
+              style={{ 
+                backgroundColor: '#ff8000',
+                color: '#ffffff',
+                padding: '24px 32px 24px 32px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                flexShrink: 0,
+                marginTop: 'auto'
+              }}
+            >
+              <p style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold',
+                letterSpacing: '0.5px',
+                margin: '0',
+                textTransform: 'uppercase'
+              }}>
+                LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
+              </p>
+              
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                  Verwendungszweck: {reference || orderNumber}
+                </span>
+                <span style={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '22px', 
+                  fontWeight: 'bold',
+                  letterSpacing: '1px'
+                }}>
+                  {vban || 'VBAN-409856'}
+                </span>
+              </div>
+              
+              <p style={{ 
+                fontSize: '13px', 
+                lineHeight: '1.5',
+                opacity: 0.95,
+                margin: '0',
+                maxWidth: '100%'
+              }}>
+                Nach Eingang dieses Schreibens haben Sie 3 Tage Zeit die Rechnung zu begleichen. Bei nicht fristgerechter Zahlung behalten wir uns rechtliche Schritte sowie Verzugsgebühren von 200$ pro Tag vor.
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Footer - Orange with Payment Info */}
-        <div 
-          style={{ 
-            backgroundColor: '#ff8000',
-            color: '#ffffff',
-            padding: '24px 32px 24px 32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            flexShrink: 0,
-            marginTop: 'auto'
-          }}
-        >
-          <p style={{ 
-            fontSize: '14px', 
-            fontWeight: 'bold',
-            letterSpacing: '0.5px',
-            margin: '0',
-            textTransform: 'uppercase'
-          }}>
-            LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
-          </p>
-          
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            gap: '20px'
-          }}>
-            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              Verwendungszweck: {reference || orderNumber}
-            </span>
-            <span style={{ 
-              fontFamily: 'monospace', 
-              fontSize: '22px', 
-              fontWeight: 'bold',
-              letterSpacing: '1px'
-            }}>
-              VBAN-409856
-            </span>
-          </div>
-          
-          <p style={{ 
-            fontSize: '13px', 
-            lineHeight: '1.5',
-            opacity: 0.95,
-            margin: '0',
-            maxWidth: '100%'
-          }}>
-            Nach Eingang dieses Schreibens haben Sie 3 Tage Zeit die Rechnung zu begleichen. Bei nicht fristgerechter Zahlung behalten wir uns rechtliche Schritte sowie Verzugsgebühren von 200$ pro Tag vor.
-          </p>
-        </div>
-        </div>
         </div>
       </div>
     </div>
