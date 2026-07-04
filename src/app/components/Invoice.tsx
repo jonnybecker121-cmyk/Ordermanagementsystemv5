@@ -347,3 +347,50 @@ const Invoice = ({ data }: { data: any }) => {
                 marginTop: 'auto'
               }}
             >
+              <p style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold',
+                letterSpacing: '0.5px',
+                margin: '0',
+                textTransform: 'uppercase'
+              }}>
+                LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
+              </p>
+              
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                  Verwendungszweck: {reference || orderNumber}
+                </span>
+                <span style={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '22px', 
+                  fontWeight: 'bold',
+                  letterSpacing: '1px'
+                }}>
+                  VBAN-409856
+                </span>
+              </div>
+              
+              <p style={{ 
+                fontSize: '13px', 
+                lineHeight: '1.5',
+                opacity: 0.95,
+                margin: '0',
+                maxWidth: '100%'
+              }}>
+                Nach Eingang dieses Schreibens haben Sie 3 Tage Zeit die Rechnung zu begleichen. Bei nicht fristgerechter Zahlung behalten wir uns rechtliche Schritte sowie Verzugsgebühren von 200$ pro Tag vor.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Invoice;
