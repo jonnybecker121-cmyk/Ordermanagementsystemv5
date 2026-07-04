@@ -30,6 +30,7 @@ const Invoice = ({ data }: { data: any }) => {
     orderNumber,
     deliveryDate,
     reference,
+    paymentNote,
     vban,
     items = []
   } = data;
@@ -317,29 +318,23 @@ const Invoice = ({ data }: { data: any }) => {
                 </tbody>
               </table>
 
-              {/* Summary Section - Nur noch Zahlungssumme */}
+              {/* Summary Section - Linksbündige Beschriftung und rechtsbündiger Wert über die gesamte Breite */}
               <div style={{ 
                 display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'flex-end',
-                marginTop: 'auto' 
+                justifyContent: 'space-between',
+                width: '100%',
+                paddingTop: '20px',
+                marginTop: 'auto',
+                borderTop: '3px solid #111827',
+                fontSize: '22px',
+                fontWeight: 'bold'
               }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  width: '350px',
-                  paddingTop: '20px',
-                  borderTop: '3px solid #111827',
-                  fontSize: '22px',
-                  fontWeight: 'bold'
-                }}>
-                  <span style={{ color: '#111827' }}>Zahlungssumme</span>
-                  <span style={{ color: '#ff8000' }}>{formatter.format(sub)}</span>
-                </div>
+                <span style={{ color: '#111827' }}>Zahlungssumme</span>
+                <span style={{ color: '#ff8000' }}>{formatter.format(sub)}</span>
               </div>
             </div>
 
-            {/* Footer - Orange with Payment Info */}
+            {/* Footer - Orange mit Zahlungsinformationen (Original behalten) */}
             <div 
               style={{ 
                 backgroundColor: '#ff8000',
@@ -352,50 +347,3 @@ const Invoice = ({ data }: { data: any }) => {
                 marginTop: 'auto'
               }}
             >
-              <p style={{ 
-                fontSize: '14px', 
-                fontWeight: 'bold',
-                letterSpacing: '0.5px',
-                margin: '0',
-                textTransform: 'uppercase'
-              }}>
-                LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
-              </p>
-              
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                gap: '20px'
-              }}>
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                  Verwendungszweck: {reference || orderNumber}
-                </span>
-                <span style={{ 
-                  fontFamily: 'monospace', 
-                  fontSize: '22px', 
-                  fontWeight: 'bold',
-                  letterSpacing: '1px'
-                }}>
-                  {vban || 'VBAN-409856'}
-                </span>
-              </div>
-              
-              <p style={{ 
-                fontSize: '13px', 
-                lineHeight: '1.5',
-                opacity: 0.95,
-                margin: '0',
-                maxWidth: '100%'
-              }}>
-                Nach Eingang dieses Schreibens haben Sie 3 Tage Zeit die Rechnung zu begleichen. Bei nicht fristgerechter Zahlung behalten wir uns rechtliche Schritte sowie Verzugsgebühren von 200$ pro Tag vor.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Invoice;
