@@ -1,6 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertCircle } from "lucide-react";
-import { Button } from "../ui/button";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -12,47 +11,38 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
+  state: State = { hasError: false };
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("❌ [ErrorBoundary]", error, info);
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
-          <div className="flex max-w-md flex-col items-center gap-4 rounded-lg border border-destructive/20 bg-destructive/10 p-8">
-            <div className="rounded-full bg-destructive/20 p-4">
-              <AlertCircle className="h-8 w-8 text-destructive" />
-            </div>
-            <h1 className="text-xl font-bold text-foreground">Etwas ist schiefgelaufen</h1>
-            <p className="text-sm text-muted-foreground">
-              Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu.
+        <div className="flex h-screen items-center justify-center bg-background p-6">
+          <div className="max-w-md rounded-lg border border-destructive/30 bg-card p-6 text-center shadow-lg">
+            <AlertTriangle className="mx-auto mb-4 h-10 w-10 text-destructive" />
+            <h2 className="mb-2 font-semibold">Etwas ist schiefgelaufen</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {this.state.error?.message || "Ein unerwarteter Fehler ist aufgetreten."}
             </p>
-            {this.state.error && (
-                <div className="max-w-xs overflow-auto rounded bg-background/50 p-2 text-xs text-muted-foreground">
-                    {this.state.error.toString()}
-                </div>
-            )}
-            <Button 
+            <button
               onClick={() => window.location.reload()}
-              variant="default"
-              className="mt-2"
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
             >
-              Seite neu laden
-            </Button>
+              Neu laden
+            </button>
           </div>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

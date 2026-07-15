@@ -1,22 +1,36 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Package, Trash2, Edit } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Trash2, Plus, Package } from 'lucide-react';
 
 export function ItemManager() {
-  const { items, addItem, deleteItem } = useOrderStore();
+  const { items, addItem, updateItem, deleteItem } = useOrderStore();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleAdd = () => {
+  const handleSubmit = () => {
     if (!name || !price) return;
-    addItem({ name, price: parseFloat(price) });
+
+    if (editingId) {
+      updateItem(editingId, { name, price: parseFloat(price) });
+      setEditingId(null);
+    } else {
+      addItem({ name, price: parseFloat(price) });
+    }
+
     setName('');
     setPrice('');
+  };
+
+  const handleEdit = (item: any) => {
+    setName(item.name);
+    setPrice(item.price.toString());
+    setEditingId(item.id);
   };
 
   return (
@@ -24,48 +38,52 @@ export function ItemManager() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
-          Items
+          Artikel
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item Name" />
-          <Label>Price</Label>
-          <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" />
-          <Button onClick={handleAdd} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Item
-          </Button>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Artikelname" />
         </div>
-        
-        <div className="max-h-[300px] overflow-y-auto border rounded-md">
+        <div className="space-y-2">
+          <Label>Preis</Label>
+          <Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Preis" type="number" step="0.01" />
+        </div>
+        <Button onClick={handleSubmit} className="w-full">
+          {editingId ? 'Artikel aktualisieren' : 'Artikel hinzufügen'}
+        </Button>
+
+        <div className="max-h-[300px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="text-right">Preis</TableHead>
+                <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 ? (
-                 <TableRow>
-                   <TableCell colSpan={3} className="text-center text-muted-foreground">No items</TableCell>
-                 </TableRow>
-              ) : (
-                items.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell>{i.name}</TableCell>
-                    <TableCell>${i.price.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => deleteItem(i.id)}>
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="font-medium">{item.name}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ${item.price.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteItem(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
-import { Separator } from '../ui/separator';
-import { 
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Separator } from './ui/separator';
+import {
   Archive,
   Search,
   Trash2,
@@ -23,10 +23,10 @@ interface ArchiveManagerProps {
 }
 
 export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps = {}) {
-  const { ordersArchive, ordersDone, restoreFromArchive, deleteFromArchive, moveToArchive, autoArchiveCompleted } = useOrderStore();
+  const { ordersArchive, ordersDone, restoreFromArchive, deleteFromArchive, autoArchiveCompleted } = useOrderStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'customer' | 'amount'>('date');
-  
+
   // 🔥 Live-Sync: Reload bei Tab-Wechsel
   useEffect(() => {
     if (syncTrigger > 0) {
@@ -42,7 +42,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
       const discount = itemTotal * ((item.disc || 0) / 100);
       return sum + (itemTotal - discount);
     }, 0);
-    
+
     const taxRate = (order.taxRate || 0) / 100;
     const taxAmount = subtotal * taxRate;
     return order.taxSign === 'plus' ? subtotal + taxAmount : Math.max(0, subtotal - taxAmount);
@@ -68,7 +68,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
           return calculateOrderTotal(b) - calculateOrderTotal(a);
         case 'date':
         default:
-          return new Date(b.finishedAt || b.createdAt).getTime() - 
+          return new Date(b.finishedAt || b.createdAt).getTime() -
                  new Date(a.finishedAt || a.createdAt).getTime();
       }
     });
@@ -78,8 +78,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
 
   const handleRestore = (orderId: string) => {
     restoreFromArchive(orderId);
-    
-    // Show success message
+
     if (typeof window !== 'undefined') {
       import('sonner').then(({ toast }) => {
         toast.success('Auftrag wiederhergestellt!', {
@@ -94,8 +93,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
   const handleDelete = (orderId: string) => {
     if (confirm('Sind Sie sicher, dass Sie diesen Auftrag permanent löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.')) {
       deleteFromArchive(orderId);
-      
-      // Show success message
+
       if (typeof window !== 'undefined') {
         import('sonner').then(({ toast }) => {
           toast.success('Auftrag gelöscht!', {
@@ -154,7 +152,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
             <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
               <Archive className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-foreground">Archiv</span>
+            <span className="text-black dark:text-white">Archiv</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -168,7 +166,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                 <div className="text-sm text-muted-foreground">Archivierte Aufträge</div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="p-2 bg-green-100 rounded-md">
                 <DollarSign className="h-4 w-4 text-green-600" />
@@ -178,7 +176,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                 <div className="text-sm text-muted-foreground">Archiv-Gesamtwert</div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="p-2 bg-yellow-100 rounded-md">
                 <Package className="h-4 w-4 text-yellow-600" />
@@ -188,14 +186,14 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                 <div className="text-sm text-muted-foreground">Bereit zum Archivieren</div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="p-2 bg-gray-100 rounded-md">
                 <Calendar className="h-4 w-4 text-gray-600" />
               </div>
               <div>
                 <div className="font-medium">
-                  {ordersArchive.length > 0 
+                  {ordersArchive.length > 0
                     ? new Date(Math.max(...ordersArchive.map(o => new Date(o.finishedAt || o.createdAt).getTime())))
                         .toLocaleDateString('de-DE')
                     : 'Keine'
@@ -208,7 +206,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
 
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex gap-2">
-              <Button 
+              <Button
                 onClick={handleAutoArchive}
                 disabled={completedOrdersCount === 0}
                 className="flex items-center gap-2"
@@ -216,9 +214,9 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                 <Archive className="h-4 w-4" />
                 Alle Abgeschlossenen archivieren ({completedOrdersCount})
               </Button>
-              
+
               {filteredOrders.length > 0 && (
-                <Button 
+                <Button
                   variant="outline"
                   onClick={exportArchiveData}
                   className="flex items-center gap-2"
@@ -228,7 +226,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                 </Button>
               )}
             </div>
-            
+
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -239,7 +237,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                   className="pl-9"
                 />
               </div>
-              
+
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'date' | 'customer' | 'amount')}
@@ -261,7 +259,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
             <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
               <FileText className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-foreground">Archivierte Aufträge ({filteredOrders.length})</span>
+            <span className="text-black dark:text-white">Archivierte Aufträge ({filteredOrders.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -270,7 +268,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
               {filteredOrders.map((order) => {
                 const orderTotal = calculateOrderTotal(order);
                 const finishedDate = order.finishedAt ? new Date(order.finishedAt) : new Date(order.createdAt);
-                
+
                 return (
                   <div key={order.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
                     <div className="flex items-start justify-between mb-3">
@@ -286,13 +284,13 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                             {order.status}
                           </Badge>
                         </div>
-                        
+
                         <div className="text-sm text-muted-foreground mb-2">
                           <div><strong>{order.customerName}</strong></div>
                           <div>{order.customerEmail}</div>
                           {order.customerPhone && <div>{order.customerPhone}</div>}
                         </div>
-                        
+
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -308,7 +306,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2 ml-4">
                         <Button
                           variant="outline"
@@ -320,7 +318,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                           <RotateCcw className="h-3 w-3" />
                           Wiederherstellen
                         </Button>
-                        
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -333,7 +331,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                         </Button>
                       </div>
                     </div>
-                    
+
                     {order.items && order.items.length > 0 && (
                       <>
                         <Separator className="my-3" />
@@ -362,7 +360,7 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
               <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="font-medium mb-2">Kein Archiv vorhanden</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                {searchTerm 
+                {searchTerm
                   ? 'Keine Aufträge entsprechen Ihren Suchkriterien.'
                   : 'Noch keine Aufträge wurden archiviert.'
                 }
@@ -388,10 +386,10 @@ export default function ArchiveManager({ syncTrigger = 0 }: ArchiveManagerProps 
                   Aufträge bereit zum Archivieren
                 </h4>
                 <p className="text-sm text-yellow-700 mb-3">
-                  Sie haben {completedOrdersCount} abgeschlossene Aufträge, die archiviert werden können. 
+                  Sie haben {completedOrdersCount} abgeschlossene Aufträge, die archiviert werden können.
                   Archivierte Aufträge werden aus der aktiven Liste entfernt, bleiben aber für Berichte verfügbar.
                 </p>
-                <Button 
+                <Button
                   onClick={handleAutoArchive}
                   size="sm"
                   className="bg-yellow-600 hover:bg-yellow-700 text-white"

@@ -1,49 +1,57 @@
+import { Card, CardContent } from './ui/card';
 import { useOrderStore } from '../store/orderStore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { CheckCircle, AlertCircle, Clock, DollarSign } from 'lucide-react';
 
 export function PaymentStatusIndicator() {
   const { ordersOpen, ordersDone } = useOrderStore();
-  
-  const allOrders = [...ordersOpen, ...ordersDone];
-  const paidCount = allOrders.filter(o => o.status === 'Gezahlt' || o.status === 'Abgeschlossen').length;
-  const pendingCount = allOrders.filter(o => o.status === 'Ausstehend').length;
-  const processingCount = allOrders.filter(o => o.status === 'In Bearbeitung').length;
-  const waitingCount = allOrders.filter(o => o.status === 'Warten auf Zahlung').length;
 
-  const data = [
-    { name: 'Pending', value: pendingCount, color: '#eab308' },
-    { name: 'Processing', value: processingCount, color: '#3b82f6' },
-    { name: 'Waiting', value: waitingCount, color: '#f97316' },
-    { name: 'Paid/Completed', value: paidCount, color: '#22c55e' },
-  ].filter(d => d.value > 0);
+  const pending = ordersOpen.filter(o => o.status === 'Ausstehend').length;
+  const processing = ordersOpen.filter(o => o.status === 'In Bearbeitung').length;
+  const waiting = ordersOpen.filter(o => o.status === 'Warten auf Zahlung').length;
+  const paid = ordersDone.filter(o => o.status === 'Gezahlt').length;
+  const completed = ordersDone.filter(o => o.status === 'Abgeschlossen').length;
 
   return (
-    <div className="h-[250px] w-full">
-      {data.length > 0 ? (
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      ) : (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          No orders data available
-        </div>
-      )}
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+          <AlertCircle className="h-5 w-5 text-yellow-600 mb-1" />
+          <div className="text-xl font-bold text-yellow-800">{pending}</div>
+          <div className="text-xs text-yellow-700">Ausstehend</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+          <Clock className="h-5 w-5 text-blue-600 mb-1" />
+          <div className="text-xl font-bold text-blue-800">{processing}</div>
+          <div className="text-xs text-blue-700">In Bearbeitung</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-orange-50 border-orange-200">
+        <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+          <DollarSign className="h-5 w-5 text-orange-600 mb-1" />
+          <div className="text-xl font-bold text-orange-800">{waiting}</div>
+          <div className="text-xs text-orange-700">Warten auf Zahlung</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-green-50 border-green-200">
+        <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+          <CheckCircle className="h-5 w-5 text-green-600 mb-1" />
+          <div className="text-xl font-bold text-green-800">{paid}</div>
+          <div className="text-xs text-green-700">Gezahlt</div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gray-50 border-gray-200">
+        <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+          <CheckCircle className="h-5 w-5 text-gray-600 mb-1" />
+          <div className="text-xl font-bold text-gray-800">{completed}</div>
+          <div className="text-xs text-gray-700">Abgeschlossen</div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

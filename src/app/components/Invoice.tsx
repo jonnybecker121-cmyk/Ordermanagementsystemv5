@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { invoiceHeaderSrc } from '../assets/invoiceHeader';
 
@@ -22,7 +22,7 @@ const Invoice = ({ data }: { data: any }) => {
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('de-DE');
   };
-  
+
   const {
     customerName,
     customerEmail,
@@ -30,13 +30,8 @@ const Invoice = ({ data }: { data: any }) => {
     orderNumber,
     deliveryDate,
     reference,
-    paymentNote,
-    vban,
     items = []
   } = data;
-
-  // SCHMELZDEPOT: Immer +5% Steuer
-  const taxPercent = 5;
 
   const calcSubtotal = () => {
     return items.reduce((sum: number, item: any) => {
@@ -62,17 +57,15 @@ const Invoice = ({ data }: { data: any }) => {
     }
 
     try {
-      console.log('🚀 Starting PNG export...');
-      
       const wrapper = invoiceRef.current.parentElement;
       const originalTransform = wrapper ? wrapper.style.transform : null;
-      
+
       if (wrapper) {
         wrapper.style.transform = 'none';
       }
-      
+
       const EXPORT_WIDTH = 949;
-      
+
       const canvas = await html2canvas(invoiceRef.current, {
         backgroundColor: '#ffffff',
         scale: 1,
@@ -98,13 +91,13 @@ const Invoice = ({ data }: { data: any }) => {
             clonedElement.style.boxShadow = 'none';
             clonedElement.style.backgroundColor = '#ffffff';
             clonedElement.style.paddingBottom = '0';
-            
+
             const children = clonedElement.children;
             const footerEl = children[children.length - 1] as HTMLElement;
             if (footerEl) {
               footerEl.style.marginTop = '0';
             }
-            
+
             const clonedWrapper = clonedElement.parentElement;
             if (clonedWrapper) {
               clonedWrapper.style.zoom = '1';
@@ -113,7 +106,7 @@ const Invoice = ({ data }: { data: any }) => {
               clonedWrapper.style.height = 'auto';
               clonedWrapper.style.backgroundColor = '#ffffff';
             }
-            
+
             const allElements = clonedElement.querySelectorAll('*');
             allElements.forEach(el => {
               if (el instanceof HTMLElement) {
@@ -130,34 +123,20 @@ const Invoice = ({ data }: { data: any }) => {
           }
         }
       });
-      
+
       if (wrapper && originalTransform) {
         wrapper.style.transform = originalTransform;
       }
-      
-      console.log(`📊 Canvas: ${canvas.width}×${canvas.height}px`);
-      
+
       const link = document.createElement('a');
       link.download = `SCHMELZDEPOT_Rechnung_${orderNumber || 'INVOICE'}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
-      
-      console.log(`✅ PNG exported successfully`);
+
       alert('✅ PNG erfolgreich exportiert!');
-      
     } catch (error) {
       console.error('❌ Export failed:', error);
       alert('❌ Export fehlgeschlagen: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
-  const checkHtml2Canvas = () => {
-    if (html2canvas) {
-      alert('✅ html2canvas ist verfügbar und bereit!');
-      console.log('✅ html2canvas status: Available');
-    } else {
-      alert('❌ html2canvas ist nicht verfügbar. Bitte warten Sie einen Moment und versuchen Sie es erneut.');
-      console.log('❌ html2canvas status: Not available');
     }
   };
 
@@ -166,7 +145,7 @@ const Invoice = ({ data }: { data: any }) => {
       <div className="flex gap-2 mb-4 mt-2 no-print">
         <button
           onClick={handleExport}
-          className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg gpu-accelerate"
+          className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
         >
           <span className="flex items-center gap-2">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,18 +154,12 @@ const Invoice = ({ data }: { data: any }) => {
             Exportieren als PNG (949×1177px)
           </span>
         </button>
-        <button
-          onClick={checkHtml2Canvas}
-          className="px-4 py-2.5 bg-muted text-foreground text-sm rounded-lg hover:bg-muted/80 transition-all duration-200 border border-border"
-        >
-          Test html2canvas
-        </button>
       </div>
 
       {/* Invoice preview container with scroll */}
-      <div 
+      <div
         className="no-print w-full"
-        style={{ 
+        style={{
           maxHeight: 'calc(100vh - 180px)',
           overflow: 'auto',
           border: 'none',
@@ -199,16 +172,16 @@ const Invoice = ({ data }: { data: any }) => {
         }}
       >
         {/* Scaled wrapper for compact display */}
-        <div style={{ 
+        <div style={{
           transform: 'scale(0.48)',
           transformOrigin: 'top center',
           width: '949px'
         }}
         >
-          <div 
-            ref={invoiceRef} 
+          <div
+            ref={invoiceRef}
             data-invoice-export="true"
-            style={{ 
+            style={{
               width: '949px',
               minHeight: 'auto',
               border: 'none',
@@ -235,11 +208,11 @@ const Invoice = ({ data }: { data: any }) => {
             />
 
             {/* Customer Information Section */}
-            <div style={{ 
-              borderBottom: '2px solid #e5e7eb', 
-              display: 'grid', 
+            <div style={{
+              borderBottom: '2px solid #e5e7eb',
+              display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              flexShrink: 0 
+              flexShrink: 0
             }}>
               {/* Left Column - Customer Details */}
               <div style={{ padding: '32px', borderRight: '2px solid #e5e7eb' }}>
@@ -273,21 +246,21 @@ const Invoice = ({ data }: { data: any }) => {
             </div>
 
             {/* Items Table & Summary */}
-            <div style={{ 
-              padding: '32px', 
+            <div style={{
+              padding: '32px',
               flex: 1,
               minHeight: '600px',
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <table style={{ 
-                width: '100%', 
+              <table style={{
+                width: '100%',
                 borderCollapse: 'collapse',
                 marginBottom: '32px'
               }}>
                 <thead>
-                  <tr style={{ 
-                    backgroundColor: '#ff8000', 
+                  <tr style={{
+                    backgroundColor: '#ff8000',
                     color: '#ffffff'
                   }}>
                     <th style={{ textAlign: 'left', padding: '16px 12px', fontSize: '16px', fontWeight: 'bold' }}>ARTIKEL</th>
@@ -301,9 +274,9 @@ const Invoice = ({ data }: { data: any }) => {
                   {items.map((item: any, index: number) => {
                     const itemTotal = item.price * item.qty * (1 - (item.disc || 0) / 100);
                     return (
-                      <tr 
-                        key={index} 
-                        style={{ 
+                      <tr
+                        key={index}
+                        style={{
                           borderBottom: '1px solid #e5e7eb',
                           backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
                         }}
@@ -318,9 +291,9 @@ const Invoice = ({ data }: { data: any }) => {
                 </tbody>
               </table>
 
-              {/* Summary Section - Linksbündige Beschriftung und rechtsbündiger Wert über die gesamte Breite */}
-              <div style={{ 
-                display: 'flex', 
+              {/* Summary Section */}
+              <div style={{
+                display: 'flex',
                 justifyContent: 'space-between',
                 width: '100%',
                 paddingTop: '20px',
@@ -334,9 +307,9 @@ const Invoice = ({ data }: { data: any }) => {
               </div>
             </div>
 
-            {/* Footer - Orange mit Zahlungsinformationen (Original behalten) */}
-            <div 
-              style={{ 
+            {/* Footer - Orange mit Zahlungsinformationen */}
+            <div
+              style={{
                 backgroundColor: '#ff8000',
                 color: '#ffffff',
                 padding: '24px 32px 24px 32px',
@@ -347,8 +320,8 @@ const Invoice = ({ data }: { data: any }) => {
                 marginTop: 'auto'
               }}
             >
-              <p style={{ 
-                fontSize: '14px', 
+              <p style={{
+                fontSize: '14px',
                 fontWeight: 'bold',
                 letterSpacing: '0.5px',
                 margin: '0',
@@ -356,28 +329,28 @@ const Invoice = ({ data }: { data: any }) => {
               }}>
                 LITTLE SEOUL WEST 121 · SA, LOS SANTOS · SCHMELZDEPOT@STATEV.DE
               </p>
-              
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: '20px'
               }}>
                 <span style={{ fontSize: '18px', fontWeight: 'bold' }}>
                   Verwendungszweck: {reference || orderNumber}
                 </span>
-                <span style={{ 
-                  fontFamily: 'monospace', 
-                  fontSize: '22px', 
+                <span style={{
+                  fontFamily: 'monospace',
+                  fontSize: '22px',
                   fontWeight: 'bold',
                   letterSpacing: '1px'
                 }}>
                   VBAN-409856
                 </span>
               </div>
-              
-              <p style={{ 
-                fontSize: '13px', 
+
+              <p style={{
+                fontSize: '13px',
                 lineHeight: '1.5',
                 opacity: 0.95,
                 margin: '0',

@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Button } from '../ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Button } from './ui/button';
 import { Save, RotateCcw, Hash } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
 import { toast } from 'sonner';
 
 export function OrderNumberSettings() {
   const { orderPrefix, orderDigits, nextCounter, updateSettings } = useOrderStore();
-  
+
   const [localPrefix, setLocalPrefix] = useState(orderPrefix);
   const [localDigits, setLocalDigits] = useState(orderDigits.toString());
   const [localCounter, setLocalCounter] = useState(nextCounter.toString());
@@ -27,34 +27,21 @@ export function OrderNumberSettings() {
       return;
     }
 
-    updateSettings({
-      prefix: localPrefix,
-      digits: digits,
-      counter: counter
-    });
-
+    updateSettings({ prefix: localPrefix, digits, counter });
     toast.success('Bestellnummern-Einstellungen gespeichert!');
   };
 
   const handleReset = () => {
     setLocalPrefix('SD');
     setLocalDigits('4');
-    setLocalCounter('1145');
-    
-    updateSettings({
-      prefix: 'SD',
-      digits: 4,
-      counter: 1145
-    });
-
+    setLocalCounter('1000');
+    updateSettings({ prefix: 'SD', digits: 4, counter: 1000 });
     toast.success('Einstellungen zurückgesetzt');
   };
 
   return (
     <div className="space-y-6">
-      {/* Settings Form */}
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Prefix */}
         <div className="space-y-2">
           <Label htmlFor="order-prefix" className="flex items-center gap-2">
             <Hash className="h-4 w-4 text-primary" />
@@ -70,7 +57,6 @@ export function OrderNumberSettings() {
           />
         </div>
 
-        {/* Digits */}
         <div className="space-y-2">
           <Label htmlFor="order-digits" className="flex items-center gap-2">
             Anzahl Ziffern
@@ -86,7 +72,6 @@ export function OrderNumberSettings() {
           />
         </div>
 
-        {/* Next Counter */}
         <div className="space-y-2">
           <Label htmlFor="order-counter" className="flex items-center gap-2">
             Nächste Nummer
@@ -97,12 +82,18 @@ export function OrderNumberSettings() {
             min="1"
             value={localCounter}
             onChange={(e) => setLocalCounter(e.target.value)}
-            placeholder="1145"
+            placeholder="1000"
           />
         </div>
       </div>
 
-      {/* Action Buttons */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
+        <span className="text-muted-foreground">Vorschau nächste Nummer: </span>
+        <span className="font-mono font-bold text-primary">
+          {localPrefix}-{(parseInt(localCounter) || 0).toString().padStart(parseInt(localDigits) || 4, '0')}
+        </span>
+      </div>
+
       <div className="flex gap-2">
         <Button onClick={handleSave} className="gap-2 flex-1">
           <Save className="h-4 w-4" />
@@ -116,3 +107,5 @@ export function OrderNumberSettings() {
     </div>
   );
 }
+
+export default OrderNumberSettings;

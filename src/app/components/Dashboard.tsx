@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Skeleton } from '../ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { 
-  ShoppingCart, 
-  FileText, 
-  Package, 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Alert, AlertDescription } from './ui/alert';
+import { Skeleton } from './ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  ShoppingCart,
+  FileText,
+  Package,
   TrendingUp,
   TrendingDown,
   Users,
@@ -24,7 +24,7 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useOrderStore, Order } from '../store/orderStore';
 import { PaymentStatusIndicator } from './PaymentStatusIndicator';
 import { statevApi, SellOffer, BuyOffer, PurchaseLog } from '../services/statevApi';
@@ -37,17 +37,17 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProps = {}) {
   const { ordersOpen, ordersDone, ordersArchive, updateOrder } = useOrderStore();
-  
+
   // Market data states
   const [sellOffers, setSellOffers] = useState<SellOffer[]>([]);
   const [buyOffers, setBuyOffers] = useState<BuyOffer[]>([]);
   const [purchaseLog, setPurchaseLog] = useState<PurchaseLog[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState<string | null>(null);
-  
+
   // Order details dialog state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  
+
   // Calculate order totals
   const calculateOrderTotal = (order: Order) => {
     if (!order.items || !Array.isArray(order.items)) return 0;
@@ -56,12 +56,12 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
       const discount = itemTotal * ((item.disc || 0) / 100);
       return sum + (itemTotal - discount);
     }, 0);
-    
+
     const taxRate = (order.taxRate || 0) / 100;
     const taxAmount = subtotal * taxRate;
     return order.taxSign === 'plus' ? subtotal + taxAmount : Math.max(0, subtotal - taxAmount);
   };
-  
+
   const totalOrders = ordersOpen.length + ordersDone.length + ordersArchive.length;
   const totalRevenue = [...ordersDone, ...ordersArchive].reduce((sum, order) => sum + calculateOrderTotal(order), 0);
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -88,8 +88,8 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
   // Handle status change
   const handleStatusChange = (orderId: string, newStatus: string) => {
     // Only allow manual changes for these statuses
-    const allowedManualStatuses = ['Ausstehend', 'In Bearbeitung', 'Abgeschlossen'];
-    
+    const allowedManualStatuses = ['Ausstehend', 'In Bearbeitung', 'Warten auf Zahlung'];
+
     if (!allowedManualStatuses.includes(newStatus)) {
       toast.error('Status kann nicht manuell geändert werden', {
         description: 'Dieser Status wird automatisch gesetzt'
@@ -102,29 +102,31 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
       description: `Auftrag wurde auf "${newStatus}" gesetzt`
     });
   };
-  
+
   // Market data loading function
   const loadMarketData = useCallback(async () => {
     try {
       setMarketLoading(true);
       setMarketError(null);
-      
+
+      // Es wird ausschließlich diese eine Firma ausgelesen.
+      const factoryId = '65ce2e98e3a3ab88426f2794';
+
       const [sellData, buyData, logData] = await Promise.all([
-        statevApi.getFactoryMarketSellOffers(),
-        statevApi.getFactoryMarketBuyOffers(),
-        statevApi.getFactoryBuyLog(undefined, 50, 0)
+        statevApi.getFactoryMarketSellOffers(factoryId),
+        statevApi.getFactoryMarketBuyOffers(factoryId),
+        statevApi.getFactoryBuyLog(factoryId, 50, 0)
       ]);
-      
+
       setSellOffers(sellData || []);
       setBuyOffers(buyData || []);
       setPurchaseLog(logData || []);
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Fehler beim Laden der Marktdaten';
       setMarketError(errorMessage);
-      console.warn('⚠️ [Dashboard] Cache-Fehler (nicht kritisch):', err);
-      
-      // Set empty arrays on error to prevent undefined errors
+      console.error('❌ [Dashboard] StateV-API Marktdaten-Fehler:', err);
+
       setSellOffers([]);
       setBuyOffers([]);
       setPurchaseLog([]);
@@ -132,12 +134,12 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
       setMarketLoading(false);
     }
   }, []);
-  
+
   // Load market data on component mount
   useEffect(() => {
     loadMarketData();
   }, [loadMarketData]);
-  
+
   // 🔥 Live-Sync: Reload bei Tab-Wechsel
   useEffect(() => {
     if (syncTrigger > 0) {
@@ -146,12 +148,12 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncTrigger]);
-  
+
   // Define recentOrders first
   const recentOrders = [...ordersOpen, ...ordersDone, ...ordersArchive]
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .slice(0, 5);
-  
+
   // Calculate more detailed statistics
   const totalOrdersThisMonth = recentOrders.filter(order => {
     const orderDate = new Date(order.createdAt || '');
@@ -268,7 +270,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
         {/* Quick Actions */}
         <Card className="bg-card border border-primary/20">
           <CardHeader>
-            <CardTitle className="text-foreground">Schnellaktionen</CardTitle>
+            <CardTitle className="text-black dark:text-white">Schnellaktionen</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {quickActions.map((action, index) => (
@@ -279,12 +281,12 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                     <action.icon className="h-4 w-4 text-primary-foreground" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-foreground">{action.title}</h4>
+                    <h4 className="font-medium text-black dark:text-white">{action.title}</h4>
                     <p className="text-sm text-muted-foreground">{action.description}</p>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="border-2 border-primary/30 hover:bg-primary/10 text-primary shadow-md shadow-primary/10"
                   onClick={(e) => {
@@ -316,7 +318,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                   Zahlungen
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="orders" className="mt-4">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -340,7 +342,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                     </div>
                     <span className="font-medium">{totalOrders}</span>
                   </div>
-                  
+
                   {/* Simple Progress Bars */}
                   <div className="space-y-2 pt-4">
                     <div>
@@ -349,8 +351,8 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                         <span>{totalOrders > 0 ? Math.round(((ordersDone.length + archivedOrders) / totalOrders) * 100) : 0}%</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                        <div
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${totalOrders > 0 ? ((ordersDone.length + archivedOrders) / totalOrders) * 100 : 0}%` }}
                         ></div>
                       </div>
@@ -358,7 +360,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="payments" className="mt-4">
                 <PaymentStatusIndicator />
               </TabsContent>
@@ -378,11 +380,11 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                   const orderTotal = calculateOrderTotal(order);
                   const isOpen = ordersOpen.includes(order);
                   const displayDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('de-DE') : 'Unbekannt';
-                  
+
                   return (
                     <div key={order.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-primary/30 transition-colors bg-card/50">
-                      <div 
-                        className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" 
+                      <div
+                        className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                         onClick={() => setSelectedOrder(order)}
                       >
                         <div className="p-2.5 bg-primary/10 rounded-lg shrink-0">
@@ -401,12 +403,10 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                             value={order.status}
                             onValueChange={(value) => handleStatusChange(order.id, value)}
                           >
-                            <SelectTrigger 
-                            disabled={order.status === 'Abgeschlossen'}
-                            className={`h-6 w-auto gap-1 px-2 py-0.5 text-xs shadow-sm ${
-                              order.status === 'Ausstehend' ? 'bg-yellow-50 text-yellow-800 border-yellow-300 hover:bg-yellow-100' : 
-                              order.status === 'In Bearbeitung' ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100' : 
-                              order.status === 'Abgeschlossen' ? 'bg-gray-100 text-gray-800 border-gray-200 opacity-70 cursor-not-allowed' : ''
+                            <SelectTrigger className={`h-6 w-auto gap-1 px-2 py-0.5 text-xs shadow-sm ${
+                              order.status === 'Ausstehend' ? 'bg-yellow-50 text-yellow-800 border-yellow-300 hover:bg-yellow-100' :
+                              order.status === 'In Bearbeitung' ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100' :
+                              order.status === 'Warten auf Zahlung' ? 'bg-orange-50 text-orange-800 border-orange-300 hover:bg-orange-100' : ''
                             }`}>
                               <div className="flex items-center gap-1.5 overflow-hidden">
                                 <span className="text-xs"><SelectValue /></span>
@@ -425,55 +425,38 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                                   <span>In Bearbeitung</span>
                                 </div>
                               </SelectItem>
-                              <SelectItem value="Abgeschlossen">
+                              <SelectItem value="Warten auf Zahlung">
                                 <div className="flex items-center gap-2">
-                                  <CheckCircle className="h-3.5 w-3.5 text-gray-600" />
-                                  <span>Abgeschlossen</span>
+                                  <DollarSign className="h-3.5 w-3.5 text-orange-600" />
+                                  <span>Warten auf Zahlung</span>
                                 </div>
                               </SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <Badge 
-                              variant={
-                                order.status === 'Ausstehend' ? 'secondary' : 
-                                order.status === 'In Bearbeitung' ? 'outline' : 
-                                order.status === 'Warten auf Zahlung' ? 'secondary' :
-                                order.status === 'Gezahlt' ? 'default' : 
-                                order.status === 'Abgeschlossen' ? 'secondary' : 'secondary'
-                              }
-                              className={`gap-1.5 px-3 py-1 text-xs ${
-                                order.status === 'Ausstehend' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
-                                order.status === 'In Bearbeitung' ? 'bg-blue-100 text-blue-800 border-blue-200' : 
-                                order.status === 'Warten auf Zahlung' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                                order.status === 'Gezahlt' ? 'bg-green-100 text-green-800 border-green-200' : 
-                                order.status === 'Abgeschlossen' ? 'bg-gray-100 text-gray-800 border-gray-200' : ''
-                              }`}
-                            >
-                              {order.status === 'Ausstehend' && <AlertCircle className="h-3 w-3" />}
-                              {order.status === 'In Bearbeitung' && <Clock className="h-3 w-3" />}
-                              {order.status === 'Warten auf Zahlung' && <DollarSign className="h-3 w-3" />}
-                              {order.status === 'Gezahlt' && <CheckCircle className="h-3 w-3" />}
-                              {order.status === 'Abgeschlossen' && <CheckCircle className="h-3 w-3" />}
-                              {order.status}
-                            </Badge>
-                            {order.status === 'Abgeschlossen' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  useOrderStore.getState().archiveOrder(order.id);
-                                  toast.success("Auftrag archiviert");
-                                }}
-                                title="Auftrag archivieren"
-                              >
-                                <Package className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                          <Badge
+                            variant={
+                              order.status === 'Ausstehend' ? 'secondary' :
+                              order.status === 'In Bearbeitung' ? 'outline' :
+                              order.status === 'Warten auf Zahlung' ? 'secondary' :
+                              order.status === 'Gezahlt' ? 'default' :
+                              order.status === 'Abgeschlossen' ? 'secondary' : 'secondary'
+                            }
+                            className={`gap-1.5 px-3 py-1 text-xs ${
+                              order.status === 'Ausstehend' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                              order.status === 'In Bearbeitung' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                              order.status === 'Warten auf Zahlung' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                              order.status === 'Gezahlt' ? 'bg-green-100 text-green-800 border-green-200' :
+                              order.status === 'Abgeschlossen' ? 'bg-gray-100 text-gray-800 border-gray-200' : ''
+                            }`}
+                          >
+                            {order.status === 'Ausstehend' && <AlertCircle className="h-3 w-3" />}
+                            {order.status === 'In Bearbeitung' && <Clock className="h-3 w-3" />}
+                            {order.status === 'Warten auf Zahlung' && <DollarSign className="h-3 w-3" />}
+                            {order.status === 'Gezahlt' && <CheckCircle className="h-3 w-3" />}
+                            {order.status === 'Abgeschlossen' && <CheckCircle className="h-3 w-3" />}
+                            {order.status}
+                          </Badge>
                         )}
                       </div>
                     </div>
@@ -535,7 +518,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
                       <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
                         <TrendingUp className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -547,28 +530,25 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                     <p className="text-xs text-muted-foreground">Aktive Angebote</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
-                      <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
-                        <TrendingDown className="h-4 w-4 text-primary-foreground" />
+                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
+                      <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
+                        <TrendingDown className="h-3 w-3 text-primary-foreground" />
                       </div>
-                      Kaufangebote ({buyOffers.length})
+                      Kaufangebote
                     </CardTitle>
-                    <CardDescription>
-                      Aktuelle Kaufangebote Ihrer Factory
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-primary">{buyOffers.length}</div>
                     <p className="text-xs text-muted-foreground">Aktive Angebote</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-card border border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base text-foreground">
+                    <CardTitle className="flex items-center gap-2 text-base text-black dark:text-white">
                       <div className="p-1 bg-primary/90 rounded shadow-md shadow-primary/10">
                         <History className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -602,7 +582,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="sell" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-foreground">
+                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <TrendingUp className="h-4 w-4 text-primary-foreground" />
                         </div>
@@ -657,7 +637,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="buy" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-foreground">
+                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <TrendingDown className="h-4 w-4 text-primary-foreground" />
                         </div>
@@ -710,7 +690,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                 <TabsContent value="log" className="space-y-4">
                   <Card className="bg-card border border-primary/20">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-foreground">
+                      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
                         <div className="p-1.5 bg-primary/90 rounded shadow-md shadow-primary/10">
                           <History className="h-4 w-4 text-primary-foreground" />
                         </div>
@@ -791,7 +771,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
             Vollständige Übersicht aller Artikel und Kosten dieser Bestellung
           </DialogDescription>
         </DialogHeader>
-        
+
         {selectedOrder && (
           <div className="space-y-6">
             {/* Order Info */}
@@ -806,13 +786,13 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge 
+                <Badge
                   variant="outline"
                   className={`gap-1.5 px-3 py-1 text-xs ${
-                    selectedOrder.status === 'Ausstehend' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : 
-                    selectedOrder.status === 'In Bearbeitung' ? 'bg-blue-100 text-blue-800 border-blue-200' : 
+                    selectedOrder.status === 'Ausstehend' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                    selectedOrder.status === 'In Bearbeitung' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                     selectedOrder.status === 'Warten auf Zahlung' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                    selectedOrder.status === 'Gezahlt' ? 'bg-green-100 text-green-800 border-green-200' : 
+                    selectedOrder.status === 'Gezahlt' ? 'bg-green-100 text-green-800 border-green-200' :
                     selectedOrder.status === 'Abgeschlossen' ? 'bg-gray-100 text-gray-800 border-gray-200' : ''
                   }`}
                 >
@@ -849,7 +829,7 @@ export default function Dashboard({ onNavigate, syncTrigger = 0 }: DashboardProp
                       const itemTotal = (item.price || 0) * (item.qty || 0);
                       const discount = itemTotal * ((item.disc || 0) / 100);
                       const subtotal = itemTotal - discount;
-                      
+
                       return (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{item.name || 'Unbekannt'}</TableCell>

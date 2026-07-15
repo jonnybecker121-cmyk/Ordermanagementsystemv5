@@ -1,34 +1,29 @@
-import { ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Image as ImageIcon } from 'lucide-react';
+
+// PIC bettet die State-V-Seite direkt als iFrame ein (keine externe Seite).
+const PIC_URL = 'https://pic.statev.de/dashboard';
 
 export default function PicView() {
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] gap-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold m-0">PIC</h1>
-          <span className="text-xs text-muted-foreground">pic.statev.de</span>
-        </div>
-        <a
-          href="https://pic.statev.de/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          In neuem Tab öffnen
-        </a>
-      </div>
-      <div className="flex-1 rounded-xl border border-border overflow-hidden bg-card">
+    <Card className="bg-card border border-primary/20 shadow-lg shadow-primary/5 overflow-hidden">
+      <CardHeader className="border-b border-primary/20">
+        <CardTitle className="flex items-center gap-2">
+          <div className="p-1.5 bg-primary/90 rounded-md shadow-md shadow-primary/10">
+            <ImageIcon className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="text-black dark:text-white">PIC</span>
+        </CardTitle>
+        <CardDescription>Eingebettete PIC-Ansicht von State-V</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
         <iframe
-          src="https://pic.statev.de/"
+          src={PIC_URL}
           title="PIC"
-          name="pic-frame"
-          className="w-full h-full border-0"
-          allow="clipboard-read; clipboard-write"
-          sandbox="allow-forms allow-scripts allow-same-origin allow-downloads"
+          className="w-full h-[calc(100vh-13rem)] min-h-[520px] border-0 bg-background"
+          allow="clipboard-read; clipboard-write; camera; microphone; fullscreen"
         />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

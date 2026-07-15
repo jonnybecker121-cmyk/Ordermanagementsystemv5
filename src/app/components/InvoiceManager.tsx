@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Separator } from '../ui/separator';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Separator } from './ui/separator';
 import { Plus, FileText, Trash2, Save, Edit3 } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
 import { useInvoiceStore, PaymentNote } from '../store/invoiceStore';
 import Invoice from './Invoice';
 
-export default function InvoiceManager() {
+export function InvoiceManager() {
   const { ordersOpen, ordersDone } = useOrderStore();
   const { paymentNotes, addPaymentNote, updatePaymentNote, deletePaymentNote, setDefaultPaymentNote, getDefaultPaymentNote } = useInvoiceStore();
   const orders = [...(ordersOpen || []), ...(ordersDone || [])];
@@ -36,7 +36,6 @@ export default function InvoiceManager() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        // Restore only if it has some content
         if (parsed && (parsed.customerName || parsed.items?.length > 0 || parsed.orderNumber)) {
           setFormData(prev => ({ ...prev, ...parsed }));
           import('sonner').then(({ toast }) => {
@@ -81,34 +80,25 @@ export default function InvoiceManager() {
         customerEmail: order.customerEmail || '',
         customerPhone: order.customerPhone || '',
         orderNumber: order.number || '',
-        deliveryDate: '', // Order doesn't have deliveryDate in store
+        deliveryDate: '',
         reference: order.number || '',
         items: order.items || [],
-        // Preserve existing values for other fields unless empty
         paymentNote: formData.paymentNote || defaultNote?.content || '',
         vban: formData.vban || 'IBAN-DE89-3704-0044-0000-0000-00',
         taxPercent: order.taxRate || formData.taxPercent || 19,
         taxMode: order.taxSign || formData.taxMode || 'plus'
       });
-      
-      // Show success message
-      if (typeof window !== 'undefined') {
-        import('sonner').then(({ toast }) => {
-          toast.success('Auftragsdaten geladen!', {
-            description: `Daten von Auftrag ${order.number} - ${order.customerName} wurden übernommen.`,
-          });
-        }).catch(() => {
-          console.log('Toast notification not available');
+
+      import('sonner').then(({ toast }) => {
+        toast.success('Auftragsdaten geladen!', {
+          description: `Daten von Auftrag ${order.number} - ${order.customerName} wurden übernommen.`,
         });
-      }
+      }).catch(() => {});
     }
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const addItem = () => {
@@ -121,7 +111,7 @@ export default function InvoiceManager() {
   const updateItem = (index: number, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      items: prev.items.map((item, i) => 
+      items: prev.items.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       )
     }));
@@ -218,8 +208,8 @@ export default function InvoiceManager() {
             <Select onValueChange={handleLoadFromOrder} disabled={orders.length === 0}>
               <SelectTrigger>
                 <SelectValue placeholder={
-                  orders.length === 0 
-                    ? "Kein Auftrag verfügbar" 
+                  orders.length === 0
+                    ? "Kein Auftrag verfügbar"
                     : `Wähle einen Auftrag... (${orders.length} verfügbar)`
                 } />
               </SelectTrigger>
@@ -271,7 +261,7 @@ export default function InvoiceManager() {
                 id="orderNumber"
                 value={formData.orderNumber}
                 onChange={(e) => handleInputChange('orderNumber', e.target.value)}
-                placeholder="ORD-2024-001"
+                placeholder="SD-1000"
               />
             </div>
           </div>
@@ -298,9 +288,6 @@ export default function InvoiceManager() {
             </div>
           </div>
 
-          {/* Steuer-Einstellungen */}
-          {/* Steuer wird automatisch mit 5% berechnet */}
-
           {/* Artikel */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -310,7 +297,7 @@ export default function InvoiceManager() {
                 Artikel hinzufügen
               </Button>
             </div>
-            
+
             {formData.items.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-5">
@@ -360,7 +347,6 @@ export default function InvoiceManager() {
 
           {/* Zahlungsdetails */}
           <div className="space-y-4">
-
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="paymentNote">Zahlungshinweis</Label>
@@ -394,7 +380,7 @@ export default function InvoiceManager() {
                 placeholder="Bitte überweisen Sie den Betrag bis zum Fälligkeitsdatum."
                 rows={3}
               />
-              
+
               {/* Payment Note Manager */}
               {showPaymentNoteManager && (
                 <Card className="mt-4">
@@ -402,7 +388,6 @@ export default function InvoiceManager() {
                     <CardTitle className="text-sm">Zahlungshinweise verwalten</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Add/Edit Form */}
                     <div className="space-y-2">
                       <Input
                         placeholder="Titel für Zahlungshinweis..."
@@ -441,10 +426,9 @@ export default function InvoiceManager() {
                         )}
                       </div>
                     </div>
-                    
+
                     <Separator />
-                    
-                    {/* Existing Notes */}
+
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {paymentNotes.map(note => (
                         <div key={note.id} className="flex items-center justify-between p-2 border rounded">
@@ -503,3 +487,5 @@ export default function InvoiceManager() {
     </div>
   );
 }
+
+export default InvoiceManager;

@@ -1,24 +1,39 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Users, Trash2, Edit } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Trash2, UserPlus, Users } from 'lucide-react';
 
 export function CustomerManager() {
-  const { customers, addCustomer, deleteCustomer } = useOrderStore();
+  const { customers, addCustomer, updateCustomer, deleteCustomer } = useOrderStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleAdd = () => {
+  const handleSubmit = () => {
     if (!name) return;
-    addCustomer({ name, email, phone });
+
+    if (editingId) {
+      updateCustomer(editingId, { name, email, phone });
+      setEditingId(null);
+    } else {
+      addCustomer({ name, email, phone });
+    }
+
     setName('');
     setEmail('');
     setPhone('');
+  };
+
+  const handleEdit = (customer: any) => {
+    setName(customer.name);
+    setEmail(customer.email);
+    setPhone(customer.phone);
+    setEditingId(customer.id);
   };
 
   return (
@@ -26,51 +41,53 @@ export function CustomerManager() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Customers
+          Kunden
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-          <Label>Email</Label>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          <Label>Phone</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" />
-          <Button onClick={handleAdd} className="w-full">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Customer
-          </Button>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Kundenname" />
         </div>
-        
-        <div className="max-h-[300px] overflow-y-auto border rounded-md">
+        <div className="space-y-2">
+          <Label>E-Mail</Label>
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-Mail" />
+        </div>
+        <div className="space-y-2">
+          <Label>Telefon</Label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" />
+        </div>
+        <Button onClick={handleSubmit} className="w-full">
+          {editingId ? 'Kunde aktualisieren' : 'Kunde hinzufügen'}
+        </Button>
+
+        <div className="max-h-[300px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.length === 0 ? (
-                 <TableRow>
-                   <TableCell colSpan={2} className="text-center text-muted-foreground">No customers</TableCell>
-                 </TableRow>
-              ) : (
-                customers.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-xs text-muted-foreground">{c.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => deleteCustomer(c.id)}>
+              {customers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>
+                    <div className="font-medium">{customer.name}</div>
+                    <div className="text-xs text-muted-foreground">{customer.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(customer)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteCustomer(customer.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
