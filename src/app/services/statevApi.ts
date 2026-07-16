@@ -1,3 +1,28 @@
+// ============================================================================
+// StateV Integration – Gesamtdatei
+// ============================================================================
+//
+// Diese Datei enthaelt ZWEI Teile, die an unterschiedlichen Orten laufen:
+//
+//  TEIL 1: CLIENT-CODE
+//    -> laeuft im Browser, gehoert ins Frontend (z.B. src/services/statevApi.ts)
+//
+//  TEIL 2: SERVER-PROXY
+//    -> laeuft als Supabase Edge Function (Deno), NICHT im Browser
+//    -> Pfad: supabase/functions/make-server-d632b7fe/statev-proxy.ts
+//
+// Grund fuer die Trennung: Ein direkter Browser-Call gegen api.statev.de
+// scheitert mit "Failed to fetch" (kein CORS von State-V gesetzt).
+// Der Proxy laeuft Server-zu-Server (kein CORS-Problem) und haelt zugleich
+// die Keys geheim, die sonst im Frontend sichtbar waeren.
+//
+// Copy-Paste: Teil 1 in die Frontend-Datei, Teil 2 in die Edge-Function-Datei.
+// ============================================================================
+
+// ############################################################################
+// # TEIL 1 / 2 -- CLIENT-CODE (Browser, z.B. src/services/statevApi.ts)
+// ############################################################################
+
 // Service für die "StateV" Factory-Markt-API.
 //
 // Diese Version läuft OHNE Backend-Proxy: Die Aufrufe gehen direkt an die
@@ -15,25 +40,27 @@
 
 const CONFIG_KEY = "statev:config";
 
-// ACHTUNG: Diese Keys liegen hier im Klartext im Frontend-Code und sind damit
-// für JEDEN Nutzer der App sichtbar (Quelltext, Netzwerk-Tab, gebautes
-// Bundle). Ein "Secret Key" ist hier also faktisch nicht mehr geheim.
-const STATEV_API_KEY = "QE5362BXWBQGS89EE7";
-const STATEV_SECRET_KEY = "fd46295715a3b222ad75ea34daecf050e69b1c753dd8dd54";
+// WICHTIG: Ein direkter Browser-Call gegen https://api.statev.de schlägt mit
+// "Failed to fetch" fehl, weil die State-V-API keine CORS-Header sendet und
+// der Browser den Request deshalb blockiert (nicht reparierbar im Frontend).
+// Deshalb läuft der Client hier gegen einen eigenen Server-Proxy
+// (siehe statev-proxy.ts), der serverseitig an State-V weiterleitet.
+// Dort liegen auch die echten Keys (API-Key + Secret-Key) als Umgebungs-
+// variablen – NICHT mehr im Frontend-Code, damit sie nicht öffentlich sind.
 
 export interface StateVConfig {
-  /** Basis-URL der State-V-API, z. B. "https://api.statev.example.com" */
+  /**
+   * Basis-URL EURES EIGENEN Proxys, nicht der State-V-API direkt.
+   * Bei Supabase Edge Functions z. B.:
+   * "https://<project-id>.supabase.co/functions/v1/make-server-d632b7fe/statev-proxy"
+   */
   baseUrl: string;
-  /** Normaler API-Key. Fest hinterlegt, kann aber überschrieben werden. */
-  apiKey?: string;
-  /** Secret-Key. Fest hinterlegt, kann aber überschrieben werden. */
-  secretKey?: string;
 }
 
 const DEFAULT_CONFIG: StateVConfig = {
-  baseUrl: "https://api.statev.de",
-  apiKey: STATEV_API_KEY,
-  secretKey: STATEV_SECRET_KEY,
+  // TODO: eure echte Proxy-URL eintragen (siehe Kommentar oben), oder zur
+  // Laufzeit per setStateVConfig() setzen.
+  baseUrl: "",
 };
 
 /** Liest die aktuelle Konfiguration aus localStorage (mit Defaults). */
@@ -181,20 +208,16 @@ async function requestWithCache<T>(
     return cached.data;
   }
 
-  const { baseUrl, apiKey } = getStateVConfig();
+  const { baseUrl } = getStateVConfig();
   if (!baseUrl) {
-    console.info("State-V Basis-URL ist noch nicht konfiguriert (setStateVConfig).");
+    console.info("Proxy-Basis-URL ist noch nicht konfiguriert (setStateVConfig).");
     return cached ? cached.data : empty;
   }
 
   try {
-    const headers: Record<string, string> = {};
-    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-    // secretKey wird aktuell nicht mitgeschickt – laut bestätigtem Beispiel
-    // reicht "Authorization: Bearer <API-Key>". Falls ein Endpunkt den
-    // Secret-Key doch braucht, hier passenden Header ergänzen.
-
-    const res = await fetch(`${baseUrl}${path}`, { headers });
+    // Kein Authorization-Header mehr nötig – der eigene Proxy hängt den
+    // State-V-Key serverseitig an, der Browser kennt ihn gar nicht mehr.
+    const res = await fetch(`${baseUrl}${path}`);
     const text = await res.text();
     let body: any;
     try {
@@ -357,3 +380,71 @@ export const statevApi = {
     );
   },
 };
+
+
+// ############################################################################
+// # TEIL 2 / 2 -- SERVER-PROXY (Supabase Edge Function, Deno)
+// # Pfad: supabase/functions/make-server-d632b7fe/statev-proxy.ts
+// ############################################################################
+
+// supabase/functions/make-server-d632b7fe/statev-proxy.ts
+//
+// Dünner Server-Proxy zwischen Browser und State-V-API.
+// - Löst das CORS-Problem: der Browser spricht nur mit dieser Function
+//   (bzw. deiner Supabase-Domain), diese Function spricht Server-zu-Server
+//   mit api.statev.de (dort gibt es kein CORS, weil kein Browser beteiligt ist).
+// - Hält API-Key/Secret-Key geheim: sie werden hier aus den Environment-
+//   Variablen gelesen und NIE an den Client zurückgegeben.
+//
+// Environment-Variablen in Supabase setzen (Project Settings → Edge Functions
+// → Secrets, oder `supabase secrets set`):
+//   STATEV_API_KEY=QE5362BXWBQGS89EE7
+//   STATEV_SECRET_KEY=fd46295715a3b222ad75ea34daecf050e69b1c753dd8dd54
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const STATEV_BASE = "https://api.statev.de";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*", // ggf. auf eure konkrete Domain einschränken
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+};
+
+serve(async (req) => {
+  // Preflight-Request beantworten
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: CORS_HEADERS });
+  }
+
+  try {
+    const url = new URL(req.url);
+    // Alles nach /statev-proxy wird 1:1 an State-V weitergereicht,
+    // z. B. /statev-proxy/req/factory/list/ -> /req/factory/list/
+    const upstreamPath = url.pathname.replace(/^.*\/statev-proxy/, "");
+    const upstreamUrl = `${STATEV_BASE}${upstreamPath}${url.search}`;
+
+    const apiKey = Deno.env.get("STATEV_API_KEY");
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "STATEV_API_KEY ist serverseitig nicht konfiguriert." }),
+        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      );
+    }
+
+    const upstreamRes = await fetch(upstreamUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    const body = await upstreamRes.text();
+    return new Response(body, {
+      status: upstreamRes.status,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: `Proxy-Fehler: ${err instanceof Error ? err.message : String(err)}` }),
+      { status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+    );
+  }
+});
