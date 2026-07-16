@@ -1,7 +1,60 @@
 // Service für die "StateV" Factory-Markt-API.
-// Die Aufrufe gehen an unsere eigene Edge-Function-Route (Proxy), die den
-// STATEV_API_KEY serverseitig setzt. Der Key wird NIE ans Frontend ausgeliefert.
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+//
+// Diese Version läuft OHNE Backend-Proxy: Die Aufrufe gehen direkt an die
+// State-V-API und werden zusätzlich lokal im Browser (localStorage) gecacht,
+// damit die Daten auch nach einem Reload sofort verfügbar sind bzw. die App
+// bei einem fehlgeschlagenen Request auf den letzten bekannten Stand
+// zurückfallen kann (offline-tauglich, "stale while error").
+//
+// WICHTIG (Sicherheit): Da es keinen Server mehr gibt, der einen Key geheim
+// hält, ist ein evtl. benötigter API-Key clientseitig sichtbar (localStorage
+// ist von jedem im Browser einsehbar). Nur verwenden, wenn die State-V-API
+// entweder keinen geheimen Key braucht oder das Sichtbarwerden okay ist.
+
+// ───────────────────────── Konfiguration ─────────────────────────
+
+const CONFIG_KEY = "statev:config";
+
+// ACHTUNG: Diese Keys liegen hier im Klartext im Frontend-Code und sind damit
+// für JEDEN Nutzer der App sichtbar (Quelltext, Netzwerk-Tab, gebautes
+// Bundle). Ein "Secret Key" ist hier also faktisch nicht mehr geheim.
+const STATEV_API_KEY = "QE5362BXWBQGS89EE7";
+const STATEV_SECRET_KEY = "fd46295715a3b222ad75ea34daecf050e69b1c753dd8dd54";
+
+export interface StateVConfig {
+  /** Basis-URL der State-V-API, z. B. "https://api.statev.example.com" */
+  baseUrl: string;
+  /** Normaler API-Key. Fest hinterlegt, kann aber überschrieben werden. */
+  apiKey?: string;
+  /** Secret-Key. Fest hinterlegt, kann aber überschrieben werden. */
+  secretKey?: string;
+}
+
+const DEFAULT_CONFIG: StateVConfig = {
+  baseUrl: "https://api.statev.de",
+  apiKey: STATEV_API_KEY,
+  secretKey: STATEV_SECRET_KEY,
+};
+
+/** Liest die aktuelle Konfiguration aus localStorage (mit Defaults). */
+export function getStateVConfig(): StateVConfig {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (!raw) return { ...DEFAULT_CONFIG };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_CONFIG, ...parsed };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+}
+
+/** Setzt/merged die Konfiguration und speichert sie dauerhaft im Browser. */
+export function setStateVConfig(config: Partial<StateVConfig>): void {
+  const merged = { ...getStateVConfig(), ...config };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(merged));
+}
+
+// ───────────────────────── Typen ─────────────────────────
 
 export interface Factory {
   id: string;
@@ -60,44 +113,111 @@ export interface Inventory {
   items: InventoryEntry[];
 }
 
-const BASE = `https://${projectId}.supabase.co/functions/v1/make-server-d632b7fe/statev`;
+// ───────────────────────── Lokaler Cache ─────────────────────────
 
-/** Wird geworfen, wenn die State-V-Anbindung serverseitig noch nicht konfiguriert ist. */
-class StateVNotConfiguredError extends Error {}
+const CACHE_PREFIX = "statev:cache:";
 
-async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { Authorization: `Bearer ${publicAnonKey}` },
-  });
-
-  const text = await res.text();
-  let body: any;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = text;
-  }
-
-  if (!res.ok) {
-    const detail = body?.error || body?.upstream || text || res.statusText;
-    // Fehlende Konfiguration (Basis-URL/Key) ist kein Laufzeitfehler, sondern ein
-    // "noch nicht eingerichtet"-Zustand → sauber als leer behandeln.
-    if (res.status === 500 && typeof detail === "string" && detail.includes("nicht konfiguriert")) {
-      throw new StateVNotConfiguredError(detail);
-    }
-    throw new Error(`State-V Request '${path}' fehlgeschlagen (${res.status}): ${detail}`);
-  }
-  return body as T;
+interface CacheEntry<T> {
+  data: T;
+  storedAt: number;
 }
 
-/** Führt eine Request aus; bei fehlender Konfiguration wird still ein Leerwert geliefert. */
-async function requestOrEmpty<T>(path: string, empty: T, map: (data: any) => T): Promise<T> {
+function cacheKey(path: string): string {
+  return `${CACHE_PREFIX}${path}`;
+}
+
+function readCache<T>(path: string): CacheEntry<T> | null {
   try {
-    const data = await request<any>(path);
-    return map(data);
+    const raw = localStorage.getItem(cacheKey(path));
+    if (!raw) return null;
+    return JSON.parse(raw) as CacheEntry<T>;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache<T>(path: string, data: T): void {
+  try {
+    const entry: CacheEntry<T> = { data, storedAt: Date.now() };
+    localStorage.setItem(cacheKey(path), JSON.stringify(entry));
   } catch (err) {
+    // z. B. QuotaExceededError – nicht kritisch, einfach ignorieren.
+    console.warn(`State-V Cache konnte nicht geschrieben werden ('${path}')`, err);
+  }
+}
+
+/** Löscht den kompletten lokalen State-V-Cache (z. B. für einen "Reset"-Button). */
+export function clearStateVCache(): void {
+  const toRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(CACHE_PREFIX)) toRemove.push(key);
+  }
+  toRemove.forEach((k) => localStorage.removeItem(k));
+}
+
+class StateVNotConfiguredError extends Error {}
+
+/**
+ * Führt einen Request gegen die State-V-API aus.
+ *
+ * Cache-Strategie:
+ * - Ist ein frischer Cache-Eintrag (< maxAgeMs) vorhanden, wird dieser direkt
+ *   zurückgegeben (kein Netzwerk-Call).
+ * - Andernfalls wird die API aufgerufen; bei Erfolg wird der Cache
+ *   aktualisiert.
+ * - Schlägt der Request fehl, wird auf einen vorhandenen (auch veralteten)
+ *   Cache-Eintrag zurückgefallen, statt einen Fehler zu werfen ("stale on
+ *   error"). Gibt es gar keinen Cache, kommt der `empty`-Wert zurück.
+ */
+async function requestWithCache<T>(
+  path: string,
+  map: (data: any) => T,
+  empty: T,
+  maxAgeMs: number,
+): Promise<T> {
+  const cached = readCache<T>(path);
+  if (cached && Date.now() - cached.storedAt < maxAgeMs) {
+    return cached.data;
+  }
+
+  const { baseUrl, apiKey } = getStateVConfig();
+  if (!baseUrl) {
+    console.info("State-V Basis-URL ist noch nicht konfiguriert (setStateVConfig).");
+    return cached ? cached.data : empty;
+  }
+
+  try {
+    const headers: Record<string, string> = {};
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+    // secretKey wird aktuell nicht mitgeschickt – laut bestätigtem Beispiel
+    // reicht "Authorization: Bearer <API-Key>". Falls ein Endpunkt den
+    // Secret-Key doch braucht, hier passenden Header ergänzen.
+
+    const res = await fetch(`${baseUrl}${path}`, { headers });
+    const text = await res.text();
+    let body: any;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = text;
+    }
+
+    if (!res.ok) {
+      const detail = body?.error || body?.upstream || text || res.statusText;
+      throw new Error(`State-V Request '${path}' fehlgeschlagen (${res.status}): ${detail}`);
+    }
+
+    const mapped = map(body);
+    writeCache(path, mapped);
+    return mapped;
+  } catch (err) {
+    // Netzwerkfehler o. Ä.: auf lokalen Stand zurückfallen, falls vorhanden.
+    if (cached) {
+      console.warn(`State-V Request fehlgeschlagen, nutze lokalen Cache für '${path}'.`, err);
+      return cached.data;
+    }
     if (err instanceof StateVNotConfiguredError) {
-      console.info(`State-V noch nicht konfiguriert – '${path}' liefert leer.`);
       return empty;
     }
     throw err;
@@ -187,29 +307,53 @@ const mapInventory = (data: any): Inventory => ({
 
 const EMPTY_INV: Inventory = { totalWeight: 0, items: [] };
 
+// ── Cache-TTLs pro Datenart (in Millisekunden) ─────────────────────────
+// Stammdaten (Fabriken) ändern sich selten → lange TTL.
+// Markt-Angebote/Logs ändern sich häufig → kurze TTL.
+const TTL_FACTORIES = 10 * 60 * 1000; // 10 Minuten
+const TTL_INVENTORY = 2 * 60 * 1000; // 2 Minuten
+const TTL_MARKET = 60 * 1000; // 1 Minute
+const TTL_LOG = 60 * 1000; // 1 Minute
+
 export const statevApi = {
   getFactories(): Promise<Factory[]> {
-    return requestOrEmpty("/factories", [] as Factory[], (d) => asArray(d).map(mapFactory));
+    return requestWithCache("/req/factory/list/", (d) => asArray(d).map(mapFactory), [] as Factory[], TTL_FACTORIES);
   },
+  // TODO: Die folgenden Endpunkte sind noch geraten (altes Schema) und
+  // müssen an das echte Pfadschema der State-V-API angepasst werden,
+  // sobald die genauen Pfade bekannt sind (analog zu /req/factory/list/).
   getFactoryInventory(id: string): Promise<Inventory> {
-    return requestOrEmpty(`/inventory/${encodeURIComponent(id)}`, EMPTY_INV, mapInventory);
+    return requestWithCache(`/inventory/${encodeURIComponent(id)}`, mapInventory, EMPTY_INV, TTL_INVENTORY);
   },
   getFactoryMachines(id: string): Promise<Inventory> {
-    return requestOrEmpty(`/machines/${encodeURIComponent(id)}`, EMPTY_INV, mapInventory);
+    return requestWithCache(`/machines/${encodeURIComponent(id)}`, mapInventory, EMPTY_INV, TTL_INVENTORY);
   },
   getFactoryCounter(id: string): Promise<Inventory> {
-    return requestOrEmpty(`/counter/${encodeURIComponent(id)}`, EMPTY_INV, mapInventory);
+    return requestWithCache(`/counter/${encodeURIComponent(id)}`, mapInventory, EMPTY_INV, TTL_INVENTORY);
   },
   getFactoryMarketSellOffers(id: string): Promise<SellOffer[]> {
-    return requestOrEmpty(`/market/sell/${encodeURIComponent(id)}`, [] as SellOffer[], (d) => asArray(d).map(mapSell));
+    return requestWithCache(
+      `/market/sell/${encodeURIComponent(id)}`,
+      (d) => asArray(d).map(mapSell),
+      [] as SellOffer[],
+      TTL_MARKET,
+    );
   },
   getFactoryMarketBuyOffers(id: string): Promise<BuyOffer[]> {
-    return requestOrEmpty(`/market/buy/${encodeURIComponent(id)}`, [] as BuyOffer[], (d) => asArray(d).map(mapBuy));
+    return requestWithCache(
+      `/market/buy/${encodeURIComponent(id)}`,
+      (d) => asArray(d).map(mapBuy),
+      [] as BuyOffer[],
+      TTL_MARKET,
+    );
   },
   getFactoryBuyLog(id: string, limit = 50, skip = 0): Promise<PurchaseLog[]> {
     const qs = new URLSearchParams({ limit: String(limit), skip: String(skip) });
-    return requestOrEmpty(`/buy-log/${encodeURIComponent(id)}?${qs.toString()}`, [] as PurchaseLog[], (d) =>
-      asArray(d).map(mapLog),
+    return requestWithCache(
+      `/buy-log/${encodeURIComponent(id)}?${qs.toString()}`,
+      (d) => asArray(d).map(mapLog),
+      [] as PurchaseLog[],
+      TTL_LOG,
     );
   },
 };
